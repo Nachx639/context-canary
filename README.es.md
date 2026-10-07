@@ -5,7 +5,7 @@ compacta solo la conversación y vuelve a la vida.**
 
 <p align="center"><img src="media/demo.gif" alt="El canario vive mientras cada respuesta empieza por 🐤; una respuesta sin él lo mata, la sesión se compacta sola y el canario revive" width="800"></p>
 
-<p align="center"><a href="media/context-canary-demo.mp4">▶ Ver la demo de 20 segundos con sonido</a></p>
+<p align="center"><a href="media/context-canary-demo.mp4">▶ Ver la demo de 21 segundos con sonido</a></p>
 
 [English](README.md) · MIT · **Probado con Claude Code 2.1.293**
 

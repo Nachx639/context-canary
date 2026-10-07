@@ -7,7 +7,7 @@ then auto-compacts and brings it back to life.**
 
 <p align="center"><img src="media/demo.gif" alt="The canary lives while every answer starts with 🐤; a reply without it kills the canary, the session compacts automatically and the canary comes back to life" width="800"></p>
 
-<p align="center"><a href="media/context-canary-demo.mp4">▶ Watch the 20-second demo with sound</a></p>
+<p align="center"><a href="media/context-canary-demo.mp4">▶ Watch the 21-second demo with sound</a></p>
 
 ```sh
 claude plugin marketplace add Nachx639/context-canary
