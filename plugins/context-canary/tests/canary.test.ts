@@ -345,6 +345,8 @@ check('terminal draws pixel art with half blocks, Desktop an SVG, and the animat
   const terminal = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect(await terminal.find({ text: 'Other mod' })).toBeDefined()
   expect((await terminal.find({ key: 'canary' }))?.props.height).toBe(SPRITES.normal.height / 2)
+  // One column of air from the left edge.
+  expect((await terminal.find({ key: 'canary' }))?.props.paddingLeft).toBe(1)
   const art = await terminal.find({ key: 'canary-art' })
   expect(art?.type).toBe('Raster')
   expect(art?.props).toMatchObject({ columns: SPRITES.normal.width, rows: SPRITES.normal.height / 2, cells: cellsOf('idle') })

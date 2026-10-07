@@ -329,8 +329,8 @@ export function register(on, options = {}) {
     // for a host/custom resolver that omits either constructor.
     if (!Box || !Text) return { type: 'Text', props: {}, children: [theirs, short] }
     const oneLine = (/** @type {string} */ value) => Box({ flexDirection: 'column', children: [theirs,
-      Box({ key: 'canary', width: columns, height: 1, children: [Text({ wrap: 'truncate', color: dead ? 'gray' : 'yellow', children: [value] })] })] })
-    if (columns < sprite.width || rows < spriteRows) return oneLine(config.showDetails ? status(config, state).replace(/\n/g, ' · ') : short)
+      Box({ key: 'canary', width: columns, height: 1, paddingLeft: 1, children: [Text({ wrap: 'truncate', color: dead ? 'gray' : 'yellow', children: [value] })] })] })
+    if (columns < sprite.width + 1 || rows < spriteRows) return oneLine(config.showDetails ? status(config, state).replace(/\n/g, ' · ') : short)
 
     let art
     if (Raster && e.surface === 'terminal') {
@@ -355,6 +355,6 @@ export function register(on, options = {}) {
       children.push(Box({ flexDirection: 'column', flexGrow: 1, flexShrink: 1, justifyContent: 'center', children: labels }))
     }
     return Box({ flexDirection: 'column', children: [theirs, Box({ key: 'canary', flexDirection: 'row',
-      columnGap: 2, width: columns, height: e.surface === 'terminal' ? spriteRows : undefined, children })] })
+      columnGap: 2, paddingLeft: 1, width: columns, height: e.surface === 'terminal' ? spriteRows : undefined, children })] })
   })
 }
