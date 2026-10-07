@@ -4,7 +4,7 @@ import { rasterCells, svgSource } from './pixels.js'
 import { PALETTE, SPRITES } from './sprites.js'
 
 /** @typedef {import('claude-code').PluginState['context-canary']['canary']} Canary */
-/** @typedef {{ word: string, autoCompact: boolean, cooldownMinutes: number, language: 'en'|'es', size: 'tiny'|'small'|'normal'|'large', showDetails: boolean }} Config */
+/** @typedef {{ word: string, autoCompact: boolean, cooldownMinutes: number, language: 'en'|'es', size: 'tiny'|'small'|'normal'|'large', info: 'none'|'status'|'details' }} Config */
 /** @typedef {{ interactive: boolean, activeTurn: string|null, timer: import('claude-code').Timer|null, recoveryTimer: import('claude-code').Timer|null, epoch: number, inFlight: boolean, beat: number, pose: string }} Runtime */
 
 /** @returns {Canary} */
@@ -24,7 +24,7 @@ export function configuration(options = {}) {
       ? Math.max(0, Math.min(10080, options.cooldownMinutes)) : 30,
     language: options.language === 'es' ? 'es' : 'en',
     size: typeof options.size === 'string' && ['tiny', 'small', 'normal', 'large'].includes(options.size) ? /** @type {Config['size']} */ (options.size) : 'normal',
-    showDetails: options.showDetails === true,
+    info: options.info === 'status' || options.info === 'details' ? options.info : 'none',
   }
 }
 
@@ -330,7 +330,7 @@ export function register(on, options = {}) {
     if (!Box || !Text) return { type: 'Text', props: {}, children: [theirs, short] }
     const oneLine = (/** @type {string} */ value) => Box({ flexDirection: 'column', children: [theirs,
       Box({ key: 'canary', width: columns, height: 1, paddingLeft: 1, children: [Text({ wrap: 'truncate', color: dead ? 'gray' : 'yellow', children: [value] })] })] })
-    if (columns < sprite.width + 1 || rows < spriteRows) return oneLine(config.showDetails ? status(config, state).replace(/\n/g, ' · ') : short)
+    if (columns < sprite.width + 1 || rows < spriteRows) return oneLine(config.info === 'details' ? status(config, state).replace(/\n/g, ' · ') : short)
 
     let art
     if (Raster && e.surface === 'terminal') {
@@ -340,19 +340,21 @@ export function register(on, options = {}) {
     } else return oneLine(short)
 
     const children = [Box({ key: 'canary-cage', flexShrink: 0, children: [art] })]
-    if (config.showDetails) {
+    if (config.info !== 'none') {
       /** @param {string} value @param {import('claude-code').TextProps} [props] */
       const label = (value, props = {}) => Text({ wrap: 'truncate', ...props, children: [value] })
-      const labels = [label(t(config, dead ? 'dead' : 'alive'), { color: dead ? 'gray' : 'yellow', bold: true }),
-        label(t(config, 'streak', { streak: state.streak }))]
-      if (dead && state.death) {
+      const labels = [label(t(config, dead ? 'dead' : 'alive'), { color: dead ? 'gray' : 'yellow', bold: true })]
+      if (config.info === 'details') labels.push(label(t(config, 'streak', { streak: state.streak })))
+      if (config.info === 'details' && dead && state.death) {
         labels.push(label(t(config, 'diedAt', { response: state.death.response,
           minutes: Math.max(0, Math.floor(((await $.clock.now()) - state.death.at) / 60_000)) })))
         labels.push(label(t(config, 'preview', { preview: state.death.preview }), { dimColor: true }))
       }
-      const extra = note(config, state)
+      const extra = config.info === 'details' ? note(config, state) : ''
       if (extra) labels.push(label(extra, { dimColor: true }))
-      children.push(Box({ flexDirection: 'column', flexGrow: 1, flexShrink: 1, justifyContent: 'center', children: labels }))
+      // Never taller than the cage: the band keeps the sprite's height.
+      children.push(Box({ flexDirection: 'column', flexGrow: 1, flexShrink: 1, justifyContent: 'center',
+        children: e.surface === 'terminal' ? labels.slice(0, spriteRows) : labels }))
     }
     return Box({ flexDirection: 'column', children: [theirs, Box({ key: 'canary', flexDirection: 'row',
       columnGap: 2, paddingLeft: 1, width: columns, height: e.surface === 'terminal' ? spriteRows : undefined, children })] })

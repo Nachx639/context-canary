@@ -50,11 +50,16 @@
         "large"
       ]
     },
-    "showDetails": {
-      "type": "boolean",
-      "title": "Show details beside the cage",
-      "description": "Show streak and recovery notes next to the canary. Off: only the canary; /canary status has the details.",
-      "default": false
+    "info": {
+      "type": "string",
+      "title": "Text beside the canary",
+      "description": "none: only the bird (default). status: 'Canary alive/dead'. details: status, streak, death and recovery notes.",
+      "default": "none",
+      "options": [
+        "none",
+        "status",
+        "details"
+      ]
     }
   }
 }

@@ -350,7 +350,7 @@ check('terminal draws pixel art with half blocks, Desktop an SVG, and the animat
   const art = await terminal.find({ key: 'canary-art' })
   expect(art?.type).toBe('Raster')
   expect(art?.props).toMatchObject({ columns: SPRITES.normal.width, rows: SPRITES.normal.height / 2, cells: cellsOf('idle') })
-  // Only the canary: no text beside the cage unless showDetails is on.
+  // Only the canary: no text beside the cage unless info asks for it.
   expect(await terminal.find({ text: 'Canary alive' })).toBeUndefined()
   expect(await terminal.find({ text: /Streak/ })).toBeUndefined()
   await terminal.unmount()
@@ -421,7 +421,23 @@ check('tiny size draws a 3-row hand-drawn sprite', async ($, on) => {
   await ui.unmount()
 }, { size: 'tiny', autoCompact: false })
 
-check('showDetails puts streak and death details beside the cage', async ($, on) => {
+check('info: status shows only alive/dead beside the cage', async ($, on) => {
+  const env = setup(on)
+  await $.session.start(START)
+  await $.turn.complete(done('🐤 first'))
+  let ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await ui.find({ text: 'Canary alive' })).toBeDefined()
+  expect(await ui.find({ text: /Streak/ })).toBeUndefined()
+  await ui.unmount()
+  await $.turn.complete(done('Missing'))
+  await env.clock.advance(120_000)
+  ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await ui.find({ text: 'Canary dead' })).toBeDefined()
+  expect(await ui.find({ text: /Died on reply/ })).toBeUndefined()
+  await ui.unmount()
+}, { info: 'status', autoCompact: false })
+
+check('info: details puts streak and death details beside the cage, never taller than it', async ($, on) => {
   const env = setup(on)
   await $.session.start(START)
   await $.turn.complete(done('🐤 first'))
@@ -434,7 +450,27 @@ check('showDetails puts streak and death details beside the cage', async ($, on)
   ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect(await ui.find({ text: 'Died on reply 2, 2 min ago' })).toBeDefined()
   await ui.unmount()
-}, { showDetails: true, autoCompact: false })
+}, { info: 'details', autoCompact: false })
+
+check('info: details on tiny keeps at most three lines beside the cage', async ($, on) => {
+  const env = setup(on)
+  await $.session.start(START)
+  await $.turn.complete(done('Missing'))
+  await env.clock.advance(120_000)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await ui.find({ text: 'Canary dead' })).toBeDefined()
+  expect(await ui.find({ text: /^Starts:/ })).toBeUndefined()
+  await ui.unmount()
+}, { info: 'details', size: 'tiny', autoCompact: false })
+
+check('an unknown info value falls back to only the bird', async ($, on) => {
+  setup(on)
+  await $.session.start(START)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await ui.find({ key: 'canary-art' })).toBeDefined()
+  expect(await ui.find({ text: 'Canary alive' })).toBeUndefined()
+  await ui.unmount()
+}, { info: 'everything' })
 
 check('narrow viewport or few rows gives a one-line status on both surfaces', async ($, on) => {
   setup(on)

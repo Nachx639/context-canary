@@ -46,7 +46,7 @@ edits settings. Restart the session after changing options if it has not reloade
 | `cooldownMinutes` | `30` | A second death **less than** this many minutes after successful automatic compaction locks recovery. Range 0–10080; `0` disables the window. |
 | `language` | `en` | `en` or `es`. 2.1.293 exposes no UI locale accessor, so language is explicit. |
 | `size` | `normal` | Pixel-art canary: `tiny` (10×3 cells), `small` (14×4), `normal` (20×6) or `large` (24×8). |
-| `showDetails` | `false` | Show streak and recovery notes beside the cage. Off: only the canary. |
+| `info` | `none` | Text beside the canary: `none` (only the bird), `status` (“Canary alive/dead”) or `details` (status, streak, death and recovery notes). |
 
 After changing `word` or the rule's language, run `/canary setup` again to update
 the managed rule. Matching ignores case and accents, allows bold, quotes,
@@ -113,7 +113,7 @@ terminal a `Raster` of half blocks (two pixels per cell), in Desktop a crisp
 `Svg` of the same pixels. It blinks, chirps and hops with at most one redraw
 per second; the dead bird lies belly-up, grey and still. There is no audio.
 Details stay in the shadows: toasts on death and recovery, and `/canary status`
-for streak and history. Set `showDetails` to put them beside the cage. When the
+for streak and history. Set `info` to `status` or `details` to put them beside the cage. When the
 sprite does not fit (from `tiny` 10 columns × 3 rows to `large` 24 × 8), the
 display falls back to one line. Surveys and subagent views retain the host's display.
 

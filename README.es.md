@@ -47,7 +47,7 @@ cambiar opciones si el host no ha recargado el módulo.
 | `cooldownMinutes` | `30` | Si vuelve a morir antes de ese tiempo tras una compactación automática correcta, bloquea la recuperación. De 0 a 10080; `0` desactiva la ventana. |
 | `language` | `en` | `en` o `es`. La API 2.1.293 no expone el locale de la interfaz, así que se elige por configuración. |
 | `size` | `normal` | Canario en pixel art: `tiny` (10×3 celdas), `small` (14×4), `normal` (20×6) o `large` (24×8). |
-| `showDetails` | `false` | Muestra la racha y las notas de recuperación junto a la jaula. Desactivado: solo el canario. |
+| `info` | `none` | Texto junto al canario: `none` (solo el pájaro), `status` («Canario vivo/muerto») o `details` (estado, racha, muerte y notas de recuperación). |
 
 Si cambias la palabra o el idioma de la regla, repite `/canary setup` para
 actualizar el bloque. Se aceptan negrita, comillas, signos y emojis delante;
@@ -114,7 +114,7 @@ un `Raster` de medios bloques (dos píxeles por celda) y en Desktop un `Svg`
 nítido con los mismos píxeles. Parpadea, pía y salta con como máximo un
 redibujado por segundo; muerto queda boca arriba, gris y quieto. **No hay audio**.
 Lo demás ocurre en la sombra: toasts al morir y al recuperarse, y `/canary status`
-para la racha y el historial. Con `showDetails` se muestran junto a la jaula.
+para la racha y el historial. Con `info` en `status` o `details` se muestran junto a la jaula.
 Si el dibujo no cabe (de `tiny`, 10 columnas × 3 filas, a `large`, 24 × 8),
 muestra una sola línea. Se oculta durante encuestas y al mirar un subagente.
 
