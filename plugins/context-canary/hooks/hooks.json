@@ -1,0 +1,6 @@
+{
+  "description": "Context Canary",
+  "modules": [
+    "./register.js"
+  ]
+}

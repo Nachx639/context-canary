@@ -1,0 +1,42 @@
+{
+  "name": "context-canary",
+  "version": "1.0.0",
+  "description": "Development test entry for the Context Canary marketplace; installs use plugins/context-canary.",
+  "author": {
+    "name": "Context Canary contributors"
+  },
+  "license": "MIT",
+  "types": "./plugins/context-canary/types/index.d.ts",
+  "userConfig": {
+    "word": {
+      "type": "string",
+      "title": "Canary word",
+      "description": "Start each final reply with this word or emoji. Run /canary setup after changing it.",
+      "default": "🐤"
+    },
+    "autoCompact": {
+      "type": "boolean",
+      "title": "Automatic compaction",
+      "description": "Compact after a missing sentinel; disable for notifications only.",
+      "default": true
+    },
+    "cooldownMinutes": {
+      "type": "number",
+      "title": "Recovery window (minutes)",
+      "description": "A second death within this window locks automatic recovery until /clear. Zero disables the window.",
+      "default": 30,
+      "min": 0,
+      "max": 10080
+    },
+    "language": {
+      "type": "string",
+      "title": "Interface language",
+      "description": "English or Spanish. This API has no UI locale accessor.",
+      "default": "en",
+      "options": [
+        "en",
+        "es"
+      ]
+    }
+  }
+}

@@ -1,0 +1,4 @@
+**/.claude-plugin/types/
+.canario-work/
+.DS_Store
+*.log

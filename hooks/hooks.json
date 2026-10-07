@@ -1,0 +1,6 @@
+{
+  "description": "Marketplace test entry: load the shipped module, without a copy.",
+  "modules": [
+    "../plugins/context-canary/hooks/register.js"
+  ]
+}

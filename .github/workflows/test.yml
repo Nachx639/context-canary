@@ -1,0 +1,42 @@
+name: Test
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DISABLE_AUTOUPDATER: '1'
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the tested Claude Code version
+        shell: bash
+        run: |
+          curl -fsSL https://claude.ai/install.sh -o "$RUNNER_TEMP/install-claude.sh"
+          bash "$RUNNER_TEMP/install-claude.sh" 2.1.293
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Check version and test-entry defaults
+        run: |
+          claude --version | grep -F '2.1.293'
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root = json.loads(Path('.claude-plugin/plugin.json').read_text())
+          plugin = json.loads(Path('plugins/context-canary/.claude-plugin/plugin.json').read_text())
+          assert root['userConfig'] == plugin['userConfig']
+          assert root['version'] == plugin['version'] == '1.0.0'
+          PY
+      - name: Validate and test marketplace entry
+        run: |
+          claude plugin validate . --strict
+          claude plugin validate .claude-plugin/plugin.json --strict
+          claude plugin test .
+      - name: Validate and test installable plugin
+        run: |
+          claude plugin validate ./plugins/context-canary --strict
+          claude plugin test ./plugins/context-canary
