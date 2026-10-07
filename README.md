@@ -1,12 +1,32 @@
 # Context Canary 🐤
 
-[Español](README.es.md) · MIT · **Tested with Claude Code 2.1.293**
+**A pixel-art canary that dies when Claude Code forgets your instructions —
+then auto-compacts and brings it back to life.**
 
-Long coding conversations can stop following an instruction you gave earlier.
-Context Canary makes one instruction visible: begin each final answer with a
-small sentinel, `🐤` by default. A bird stays alive in its animated cage while
-that instruction is followed. A missing sentinel is a warning signal, not proof
-that context was lost; compaction does not guarantee the next answer will comply.
+[Español](README.es.md) · MIT · a Claude Code mod · **Tested with Claude Code 2.1.293**
+
+<p align="center"><img src="media/demo.gif" alt="The canary lives while every answer starts with 🐤; a reply without it kills the canary, the session compacts automatically and the canary comes back to life" width="800"></p>
+
+<p align="center"><a href="media/context-canary-demo.mp4">▶ Watch the 20-second demo with sound</a></p>
+
+```sh
+claude plugin marketplace add Nachx639/context-canary
+claude plugin install context-canary@context-canary
+```
+
+Then run `/canary setup` in a new session. ⭐ **If it ever saves one of your
+sessions, a star helps other people find it.**
+
+## Why
+
+Long coding conversations can stop following an instruction you gave earlier,
+and you rarely notice until something goes wrong. It is the canary in the coal
+mine: Context Canary makes one instruction visible. Each final answer must begin
+with a small sentinel (`🐤` by default). While it does, a bird lives in its cage
+just above the prompt. When an answer misses it, the bird dies, the session
+compacts automatically keeping your instructions, and the bird comes back.
+A missing sentinel is a warning signal, not proof that context was lost, and
+compaction does not guarantee the next answer will comply.
 
 ## Install
 
@@ -179,5 +199,7 @@ plugins/context-canary/
 .github/workflows/test.yml
 design/                             Pixel-art source, preview.html, render.py
 scripts/build-sprites.mjs           design/sprites.json → hooks/sprites.js
+scripts/demo/                       Demo video and soundtrack generators
+media/                              Demo GIF, video and social preview
 README.md · README.es.md · CHANGELOG.md · LICENSE
 ```
