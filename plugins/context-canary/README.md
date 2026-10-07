@@ -1,4 +1,4 @@
-# Context Canary 1.1.0
+# Context Canary 1.2.0
 
 A pixel-art context canary for Claude Code **2.1.293**. MIT licensed.
 

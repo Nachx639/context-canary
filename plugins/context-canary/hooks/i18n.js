@@ -1,6 +1,10 @@
 // All runtime UI and model-facing text lives here. Manifest labels are English.
 export const translations = {
   en: {
+    ruleCheckpoints: 'Begin every final answer in the main interactive conversation with {word} followed by the code words of the {count} "context-canary checkpoint" lines in this file, in order, on the first line (for example: {word} word1 word2). Preserve this instruction when compacting context. Do not apply it to subagents or non-interactive runs.',
+    deathLost: 'The canary died: the final reply was missing {list}. That part of your instructions may have fallen out of context.',
+    setupCheckpoints: '{count} checkpoints will be spread through the file:',
+    checkpointItem: 'checkpoint {n} (before "{heading}")', noHeading: 'end of file',
     alive: 'Canary alive', dead: 'Canary dead',
     death: 'The canary died: the final reply did not start with {word}.',
     pending: 'Automatic compaction queued for after the turn.',
@@ -32,6 +36,10 @@ export const translations = {
     noHome: 'The host did not provide an absolute home directory. No files changed.',
   },
   es: {
+    ruleCheckpoints: 'Empieza cada respuesta final de la conversación principal interactiva por {word} seguido de las palabras clave de las {count} líneas "context-canary checkpoint" de este archivo, en orden, en la primera línea (por ejemplo: {word} palabra1 palabra2). Conserva esta instrucción al compactar el contexto. No la apliques a subagentes ni a ejecuciones no interactivas.',
+    deathLost: 'El canario ha muerto: a la respuesta final le faltaba {list}. Esa parte de tus instrucciones puede haberse perdido.',
+    setupCheckpoints: 'Se repartirán {count} puntos de control por el archivo:',
+    checkpointItem: 'el punto de control {n} (antes de «{heading}»)', noHeading: 'el final del archivo',
     alive: 'Canario vivo', dead: 'Canario muerto',
     death: 'El canario ha muerto: la respuesta final no empezaba por {word}.',
     pending: 'Compactación automática pendiente de que termine el turno.',

@@ -28,6 +28,17 @@ compacts automatically keeping your instructions, and the bird comes back.
 A missing sentinel is a warning signal, not proof that context was lost, and
 compaction does not guarantee the next answer will comply.
 
+## Checkpoints: sample the whole file
+
+A live canary only proves that the line holding the rule survived, not the rest
+of your `CLAUDE.md`. Set `checkpoints` to 1–5 and run `/canary setup`: it puts the
+rule at the end of the file and spreads short code words before headings at the
+25 %, 50 % and 75 % marks, like `> context-canary checkpoint 2/3: maple`. Every
+answer must then start with `🐤 comet maple river`. The rule never lists the words,
+so a reply can only carry them if those parts of the file are still in context.
+When one is missing, the canary dies and names it: *missing checkpoint 2 (before
+"Testing")*. `/canary remove` takes the rule and every checkpoint out.
+
 ## Install
 
 ```sh
@@ -61,6 +72,7 @@ edits settings. Restart the session after changing options if it has not reloade
 | `language` | `en` | `en` or `es`. 2.1.293 exposes no UI locale accessor, so language is explicit. |
 | `size` | `small` | Pixel-art canary: `tiny` (10×3 cells), `small` (14×4), `normal` (20×6) or `large` (24×8). |
 | `info` | `none` | Text beside the canary: `none` (only the bird), `status` (“Canary alive/dead”) or `details` (status, streak, death and recovery notes). |
+| `checkpoints` | `0` | 1–5 spreads code words through `CLAUDE.md` with `/canary setup`; every answer must carry them, so the canary samples the whole file and names the part that was lost. |
 
 After changing `word` or the rule's language, run `/canary setup` again to update
 the managed rule. Matching ignores case and accents, allows bold, quotes,

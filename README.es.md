@@ -15,6 +15,17 @@ una palabra o emoji, `🐤` por defecto. El canario sigue vivo en su jaula anima
 mientras se cumple. Un fallo es una señal de alerta, no una prueba de pérdida de
 contexto; compactar tampoco garantiza que la siguiente respuesta cumpla la regla.
 
+## Puntos de control: vigilar todo el archivo
+
+Un canario vivo solo demuestra que sobrevivió la línea de la regla, no el resto de
+tu `CLAUDE.md`. Pon `checkpoints` entre 1 y 5 y ejecuta `/canary setup`: coloca la
+regla al final y reparte palabras clave antes de los títulos que caen al 25 %, 50 %
+y 75 % del archivo, como `> context-canary checkpoint 2/3: maple`. Cada respuesta
+debe empezar entonces por `🐤 comet maple river`. La regla nunca incluye las
+palabras, así que una respuesta solo puede llevarlas si esas partes siguen en el
+contexto. Si falta una, el canario muere y dice cuál: *le faltaba el punto de
+control 2 (antes de «Testing»)*. `/canary remove` quita la regla y los puntos.
+
 ## Instalación
 
 ```sh
@@ -48,6 +59,7 @@ cambiar opciones si el host no ha recargado el módulo.
 | `language` | `en` | `en` o `es`. La API 2.1.293 no expone el locale de la interfaz, así que se elige por configuración. |
 | `size` | `small` | Canario en pixel art: `tiny` (10×3 celdas), `small` (14×4), `normal` (20×6) o `large` (24×8). |
 | `info` | `none` | Texto junto al canario: `none` (solo el pájaro), `status` («Canario vivo/muerto») o `details` (estado, racha, muerte y notas de recuperación). |
+| `checkpoints` | `0` | De 1 a 5 reparte palabras clave por `CLAUDE.md` con `/canary setup`; cada respuesta debe llevarlas, así el canario vigila todo el archivo y dice qué parte se perdió. |
 
 Si cambias la palabra o el idioma de la regla, repite `/canary setup` para
 actualizar el bloque. Se aceptan negrita, comillas, signos y emojis delante;

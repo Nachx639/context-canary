@@ -6,7 +6,7 @@ declare module 'claude-code' {
         responses: number
         streak: number
         lastTurnId: string | null
-        death: { response: number; at: number; preview: string; turnId: string } | null
+        death: { response: number; at: number; preview: string; turnId: string; lost?: { n: number; heading: string }[] } | null
         lastAutoCompactAt: number | null
         blocked: boolean
         recovery: 'idle' | 'pending' | 'compacting' | 'recovered' | 'skipped' | 'failed' | 'notifyOnly' | 'blocked' | 'interrupted'

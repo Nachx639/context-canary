@@ -2,10 +2,12 @@ import { atom, read, update } from 'claude-code'
 import { translate } from './i18n.js'
 import { rasterCells, svgSource } from './pixels.js'
 import { PALETTE, SPRITES } from './sprites.js'
+import { CHECKPOINT, missingCheckpoints, pickCodes, placeCheckpoints } from './checkpoints.js'
 
 /** @typedef {import('claude-code').PluginState['context-canary']['canary']} Canary */
-/** @typedef {{ word: string, autoCompact: boolean, cooldownMinutes: number, language: 'en'|'es', size: 'tiny'|'small'|'normal'|'large', info: 'none'|'status'|'details' }} Config */
-/** @typedef {{ interactive: boolean, activeTurn: string|null, timer: import('claude-code').Timer|null, recoveryTimer: import('claude-code').Timer|null, epoch: number, inFlight: boolean, beat: number, pose: string }} Runtime */
+/** @typedef {{ word: string, autoCompact: boolean, cooldownMinutes: number, language: 'en'|'es', size: 'tiny'|'small'|'normal'|'large', info: 'none'|'status'|'details', checkpoints: number }} Config */
+/** @typedef {import('./checkpoints.js').Checkpoint} Checkpoint */
+/** @typedef {{ checkpoints: Checkpoint[], interactive: boolean, activeTurn: string|null, timer: import('claude-code').Timer|null, recoveryTimer: import('claude-code').Timer|null, epoch: number, inFlight: boolean, beat: number, pose: string }} Runtime */
 
 /** @returns {Canary} */
 const fresh = () => ({ alive: true, responses: 0, streak: 0, lastTurnId: null, death: null,
@@ -25,6 +27,8 @@ export function configuration(options = {}) {
     language: options.language === 'es' ? 'es' : 'en',
     size: typeof options.size === 'string' && ['tiny', 'small', 'normal', 'large'].includes(options.size) ? /** @type {Config['size']} */ (options.size) : 'small',
     info: options.info === 'status' || options.info === 'details' ? options.info : 'none',
+    checkpoints: typeof options.checkpoints === 'number' && Number.isFinite(options.checkpoints)
+      ? Math.max(0, Math.min(5, Math.round(options.checkpoints))) : 0,
   }
 }
 
@@ -65,6 +69,11 @@ const t = (config, key, values = {}) => translate(config.language, key, { word: 
 /** @param {Config} config @param {Canary} state */
 function note(config, state) {
   return state.recovery === 'idle' ? '' : t(config, state.recovery, { reason: state.detail })
+}
+
+/** @param {Config} config @param {{ n: number, heading: string }[]} lost */
+function lostList(config, lost) {
+  return lost.map((c) => t(config, 'checkpointItem', { n: c.n, heading: c.heading || t(config, 'noHeading') })).join(', ')
 }
 
 /** @param {Config} config @param {Canary} state */
@@ -168,8 +177,8 @@ function blockRange(text) {
   return { start, end: end + END.length }
 }
 
-/** @param {import('claude-code').EngineInterface} $ @param {Config} config @param {boolean} remove */
-async function instructionFile($, config, remove) {
+/** @param {import('claude-code').EngineInterface} $ @param {Runtime} runtime @param {Config} config @param {boolean} remove */
+async function instructionFile($, runtime, config, remove) {
   try {
     const homeDirectory = (await $.env.get('HOME')) || (await $.env.get('USERPROFILE'))
     if (!homeDirectory || !/^(\/|[a-z]:[\\/])/i.test(homeDirectory)) return { text: t(config, 'noHome') }
@@ -177,17 +186,38 @@ async function instructionFile($, config, remove) {
     const previous = await $.fs.exists(path) ? await $.fs.read(path) : ''
     const range = blockRange(previous)
     if (range === false) return { text: t(config, 'malformed') }
-    if (remove && !range) return { text: t(config, 'absent') }
-    const rule = t(config, 'rule')
+    const hasCheckpoints = previous.split(/\r?\n/).some((line) => CHECKPOINT.test(line))
+    if (remove && !range && !hasCheckpoints) return { text: t(config, 'absent') }
     const newline = previous.includes('\r\n') ? '\r\n' : '\n'
-    const block = BEGIN + newline + rule + newline + END
-    const replacement = remove ? '' : block
-    const updated = range ? previous.slice(0, range.start) + replacement + previous.slice(range.end)
-      : previous + (previous && !previous.endsWith('\n') ? newline : '') + block + newline
-    if (updated === previous || (!remove && !range && previous.includes(rule))) return { text: t(config, 'exists') }
+    /** @type {Checkpoint[]} */
+    let checkpoints = []
+    let rule = t(config, 'rule')
+    let updated
+    if (!remove && config.checkpoints > 0) {
+      // Keep the words already in the file when the count is the same, so a second setup changes nothing.
+      const existing = previous.split(/\r?\n/).map((line) => CHECKPOINT.exec(line)?.[3]).filter(Boolean)
+      const codes = existing.length === config.checkpoints ? /** @type {string[]} */ (existing) : pickCodes(config.checkpoints)
+      const withoutBlock = range ? previous.slice(0, range.start) + previous.slice(range.end) : previous
+      const placed = placeCheckpoints(withoutBlock.replace(/(\r?\n)+$/, ''), codes, newline)
+      checkpoints = placed.checkpoints
+      // The rule never lists the words: if only its own line survived, the answer could not contain them.
+      rule = t(config, 'ruleCheckpoints', { count: codes.length })
+      // The rule goes last, so the end of the file is sampled too.
+      updated = placed.text + newline + newline + BEGIN + newline + rule + newline + END + newline
+    } else {
+      const block = BEGIN + newline + rule + newline + END
+      const replacement = remove ? '' : block
+      const base = hasCheckpoints ? placeCheckpoints(previous, [], newline).text : previous
+      const baseRange = blockRange(base)
+      updated = baseRange ? base.slice(0, baseRange.start) + replacement + base.slice(baseRange.end)
+        : base + (base && !base.endsWith('\n') ? newline : '') + block + newline
+    }
+    if (updated === previous || (!remove && !range && !hasCheckpoints && previous.includes(rule))) return { text: t(config, 'exists') }
+    const plan = checkpoints.map((c) => t(config, 'checkpointItem', { n: c.n, heading: c.heading || t(config, 'noHeading') })).join('\n')
     let answer
     try {
-      answer = await $.ui.ask(t(config, remove ? 'removeQuestion' : 'setupQuestion', { path, rule }),
+      answer = await $.ui.ask(t(config, remove ? 'removeQuestion' : 'setupQuestion', { path, rule }) +
+        (plan ? '\n\n' + t(config, 'setupCheckpoints', { count: checkpoints.length }) + '\n' + plan : ''),
         [t(config, 'yes'), t(config, 'no')])
     } catch {
       return { text: t(config, 'cancelled') }
@@ -197,6 +227,8 @@ async function instructionFile($, config, remove) {
     const current = await $.fs.exists(path) ? await $.fs.read(path) : ''
     if (current !== previous) return { text: t(config, 'changed') }
     await $.fs.write(path, updated)
+    runtime.checkpoints = checkpoints
+    try { await $.store.set('checkpoints', checkpoints) } catch {}
     return { text: t(config, remove ? 'removed' : 'installed', { path }) }
   } catch (error) {
     return { text: t(config, 'fsError', { reason: excerpt(String(error)) }) }
@@ -207,7 +239,7 @@ async function instructionFile($, config, remove) {
 export function register(on, options = {}) {
   const config = configuration(options)
   /** @type {Runtime} */
-  const runtime = { interactive: false, activeTurn: null, timer: null, recoveryTimer: null,
+  const runtime = { checkpoints: [], interactive: false, activeTurn: null, timer: null, recoveryTimer: null,
     epoch: 0, inFlight: false, beat: 0, pose: 'idle' }
 
   on('session.start', async ($, e, next) => {
@@ -220,6 +252,10 @@ export function register(on, options = {}) {
         await update($, canary, /** @returns {Canary} */ (s) => ({ ...fresh(), ...s,
           recovery: s.recovery === 'pending' || s.recovery === 'compacting' ? 'interrupted' : s.recovery ?? 'idle' }))
       }
+      try {
+        const saved = await $.store.get('checkpoints')
+        runtime.checkpoints = Array.isArray(saved) ? saved : []
+      } catch { runtime.checkpoints = [] }
       for (const name of ['canary', 'canario']) {
         await $.command.register({ name, description: t(config, 'command'), argumentHint: t(config, 'argumentHint') })
       }
@@ -269,7 +305,8 @@ export function register(on, options = {}) {
     if (!answer) return result
     const current = await read($, canary)
     if (!current.alive || current.lastTurnId === e.turnId) return result
-    const valid = isAlive(answer, config.word)
+    const lost = isAlive(answer, config.word) ? missingCheckpoints(answer, runtime.checkpoints) : []
+    const valid = isAlive(answer, config.word) && lost.length === 0
     const at = valid ? 0 : await $.clock.now()
     let died = false
     await update($, canary, /** @returns {Canary} */ (state) => {
@@ -280,13 +317,15 @@ export function register(on, options = {}) {
       const blocked = state.blocked || (!valid && state.lastAutoCompactAt !== null &&
         at - state.lastAutoCompactAt < config.cooldownMinutes * 60_000)
       return { ...state, alive: valid, responses, streak: state.streak + (valid ? 1 : 0), lastTurnId: e.turnId,
-        death: valid ? null : { response: responses, at, preview: excerpt(answer), turnId: e.turnId },
+        death: valid ? null : { response: responses, at, preview: excerpt(answer), turnId: e.turnId,
+          ...(lost.length ? { lost: lost.map(({ n, heading }) => ({ n, heading })) } : {}) },
         blocked, recovery: valid ? state.recovery : blocked ? 'blocked' : config.autoCompact ? 'pending' : 'notifyOnly', detail: '' }
     })
     if (!died) return result
     startClock($, runtime, false)
     const state = await read($, canary)
-    const message = t(config, 'death') + '\n' + note(config, state)
+    const message = (state.death?.lost?.length ? t(config, 'deathLost', { list: lostList(config, state.death.lost) }) : t(config, 'death')) +
+      '\n' + note(config, state)
     $.ui.toast(message, { timeoutMs: 8000 })
     if (state.recovery === 'pending') scheduleRecovery($, runtime, config)
     const annotation = result.text && result.text !== e.answer ? result.text + '\n' : ''
@@ -296,8 +335,8 @@ export function register(on, options = {}) {
   on('command.run', { command: ['canary', 'canario'] }, async ($, e) => {
     if (!runtime.interactive) return {}
     const action = normalize(e.args.trim())
-    if (['setup', 'init', 'configurar'].includes(action)) return instructionFile($, config, false)
-    if (['remove', 'uninstall', 'quitar'].includes(action)) return instructionFile($, config, true)
+    if (['setup', 'init', 'configurar'].includes(action)) return instructionFile($, runtime, config, false)
+    if (['remove', 'uninstall', 'quitar'].includes(action)) return instructionFile($, runtime, config, true)
     const before = await read($, canary)
     if (['status', 'estado'].includes(action)) return { text: status(config, before) }
     if (!['', 'revive', 'revivir', 'reset'].includes(action)) return { text: t(config, 'help') }

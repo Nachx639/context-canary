@@ -4,6 +4,7 @@ import { configuration, excerpt, isAlive } from '../hooks/register.js'
 import { translations } from '../hooks/i18n.js'
 import { rasterCells, svgSource } from '../hooks/pixels.js'
 import { PALETTE, SPRITES } from '../hooks/sprites.js'
+import { CHECKPOINT, missingCheckpoints, pickCodes, placeCheckpoints } from '../hooks/checkpoints.js'
 
 type Canary = PluginState['context-canary']['canary']
 const BASE = { word: '🐤', language: 'en', autoCompact: true, cooldownMinutes: 30, size: 'normal' }
@@ -97,7 +98,7 @@ test('manifest defaults work without options', async ($, on) => {
   expect((await ui.find({ key: 'canary-art' }))?.props.cells).toBe(cellsOf('idle', 'small'))
   expect(await ui.find({ text: 'Canary alive' })).toBeUndefined()
   await ui.unmount()
-  expect(configuration({})).toEqual({ word: '🐤', autoCompact: true, cooldownMinutes: 30, language: 'en', size: 'small', info: 'none' })
+  expect(configuration({})).toEqual({ word: '🐤', autoCompact: true, cooldownMinutes: 30, language: 'en', size: 'small', info: 'none', checkpoints: 0 })
 })
 
 test('Unicode matching, formatted prefixes, boundaries and bounded excerpts', () => {
@@ -600,3 +601,61 @@ for (const source of ['resume', 'fork'] as const) check(source + ' keeps the int
   await $.turn.complete(done('🐤 new conversation'))
   expect(env.state().streak).toBe(1)
 })
+
+test('checkpoints are spread before headings at even fractions and replaced on a second run', () => {
+  const file = ['# Me', 'a', 'b', '## Style', 'c', 'd', '## Testing', 'e', 'f', '## Git', 'g', 'h'].join('\n')
+  const { text, checkpoints } = placeCheckpoints(file, ['maple', 'river', 'comet'])
+  expect(checkpoints.map((c) => [c.n, c.code, c.heading])).toEqual([[1, 'maple', 'Style'], [2, 'river', 'Testing'], [3, 'comet', 'Git']])
+  const lines = text.split('\n')
+  expect(lines[lines.indexOf('## Testing') - 2]).toBe('> context-canary checkpoint 2/3: river')
+  // Running again with other words leaves exactly one set.
+  const again = placeCheckpoints(text, ['amber', 'olive'])
+  expect(again.text.split('\n').filter((l) => CHECKPOINT.test(l))).toEqual(['> context-canary checkpoint 1/2: amber', '> context-canary checkpoint 2/2: olive'])
+  expect(placeCheckpoints(again.text, []).text).toBe(file)
+})
+
+test('a file without headings still gets its checkpoints, and codes never repeat', () => {
+  const { checkpoints, text } = placeCheckpoints('one\ntwo\nthree\nfour', ['iris', 'fern'])
+  expect(checkpoints.length).toBe(2)
+  expect(text.split('\n').filter((l) => CHECKPOINT.test(l)).length).toBe(2)
+  const codes = pickCodes(5)
+  expect(new Set(codes).size).toBe(5)
+})
+
+test('missingCheckpoints reads only the first line and whole words', () => {
+  const cps = [{ n: 1, code: 'maple', heading: 'Style' }, { n: 2, code: 'river', heading: 'Testing' }]
+  expect(missingCheckpoints('🐤 maple river\nDone.', cps)).toEqual([])
+  expect(missingCheckpoints('**🐤 Maple, River** done', cps)).toEqual([])
+  expect(missingCheckpoints('🐤 maple\nriver later', cps).map((c) => c.n)).toEqual([2])
+  expect(missingCheckpoints('🐤 maplewood riverside', cps).map((c) => c.n)).toEqual([1, 2])
+})
+
+check('setup with checkpoints spreads them, puts the rule last, and the canary dies naming the lost part', async ($, on) => {
+  const env = setup(on, { file: '# Me\nI like tea.\n## Style\nShort.\n## Testing\nAlways test.\n## Git\nSmall commits.\n' })
+  const saved: unknown[] = []
+  on('store.get', () => ({ value: undefined }))
+  on('store.set', ($, e) => { saved.push(e.value); return { value: undefined } })
+  await $.session.start(START)
+  expect((await $.command.run(cmd('setup'))).text).toMatch(/saved/)
+  const file = env.file()!
+  const lines = file.split('\n')
+  expect(lines.filter((l) => CHECKPOINT.test(l)).length).toBe(3)
+  // The rule is the last thing in the file and never lists the code words.
+  expect(file.trimEnd().endsWith('<!-- context-canary:end -->')).toBe(true)
+  const codes = lines.map((l) => CHECKPOINT.exec(l)?.[3]).filter(Boolean) as string[]
+  const rule = file.slice(file.indexOf('<!-- context-canary:start -->'))
+  for (const c of codes) expect(rule.includes(c)).toBe(false)
+  expect(env.asked[0]).toMatch(/3 checkpoints will be spread/)
+  expect(saved.at(-1)).toHaveLength(3)
+  // A second setup with the same count changes nothing.
+  expect((await $.command.run(cmd('setup'))).text).toMatch(/already present/)
+  // All words: alive. One missing: dead, naming the checkpoint and its section.
+  await $.turn.complete(done(`🐤 ${codes.join(' ')}\nDone.`))
+  expect(env.state().alive).toBe(true)
+  const r = await $.turn.complete(done(`🐤 ${codes[0]} ${codes[2]}\nDone.`))
+  expect(env.state()).toMatchObject({ alive: false, death: { lost: [{ n: 2 }] } })
+  expect(r.text).toMatch(/missing checkpoint 2 \(before "/)
+  // remove takes the rule and every checkpoint out.
+  expect((await $.command.run(cmd('remove'))).text).toMatch(/removed/)
+  expect(env.file()!.split('\n').some((l) => CHECKPOINT.test(l) || l.includes('context-canary:'))).toBe(false)
+}, { checkpoints: 3, autoCompact: false })

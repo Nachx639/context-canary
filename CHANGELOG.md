@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0 — 2026-10-07
+
+- `checkpoints` (0–5): `/canary setup` spreads code words through `CLAUDE.md` and puts the rule last; every
+  answer must carry them, so the canary samples the whole file and a death names the checkpoint that was lost.
+- `/canary remove` also removes the checkpoints; a second setup with the same count changes nothing.
+
 ## 1.1.0 — 2026-10-07
 
 - Pixel-art canary and cage: half-block `Raster` in the terminal, `Svg` in Desktop, same pixels.
