@@ -2,6 +2,8 @@ import { expect, mock, test, type TestBody } from 'claude-code/testing'
 import type { On, PluginState, TurnCompleteInput, SessionCompactInput, PluginOptions } from 'claude-code'
 import { configuration, excerpt, isAlive } from '../hooks/register.js'
 import { translations } from '../hooks/i18n.js'
+import { rasterCells, svgSource } from '../hooks/pixels.js'
+import { PALETTE, SPRITES } from '../hooks/sprites.js'
 
 type Canary = PluginState['context-canary']['canary']
 const BASE = { word: '🐤', language: 'en', autoCompact: true, cooldownMinutes: 30 }
@@ -77,6 +79,12 @@ function children(node: unknown): unknown[] {
 }
 const shown = (node: unknown): string => typeof node === 'string' ? node : children(node).map(shown).join('')
 const rows = (node: unknown) => children(node).map(shown)
+type Frame = 'idle' | 'blink' | 'chirp' | 'hop' | 'dead'
+const cellsOf = (frame: Frame, size: 'normal' | 'large' = 'normal') => rasterCells(SPRITES[size].frames[frame], PALETTE).cells
+async function frameOf(ui: { find: (q: object) => Promise<any> }) {
+  const art = await ui.find({ key: 'canary-art' })
+  return (['idle', 'blink', 'chirp', 'hop', 'dead'] as const).find((f) => cellsOf(f) === art?.props.cells)
+}
 
 test('manifest defaults work without options', async ($, on) => {
   const env = setup(on)
@@ -121,7 +129,7 @@ check('death -> deferred compact preserving instructions -> one revival', async 
   expect(env.state().alive).toBe(true)
   expect(env.state().responses).toBe(1)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
-  expect(await ui.find({ text: 'revived after compaction' })).toBeDefined()
+  expect(await frameOf(ui)).toBe('idle')
   await ui.unmount()
 })
 
@@ -197,8 +205,8 @@ check('notification-only freezes the first death; manual PostCompact revives', a
   expect(env.toasts.length).toBe(1)
   expect(env.state()).toMatchObject({ alive: false, streak: 1, responses: 2, recovery: 'notifyOnly', death: { preview: 'Missing reply' } })
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
-  expect(await ui.find({ text: 'Died on reply 2, 2 min ago' })).toBeDefined()
-  expect(rows(await ui.find({ key: 'canary-cage' }))[3]).toBe('│ │ <XX)  │ │')
+  expect(await frameOf(ui)).toBe('dead')
+  expect(await ui.find({ text: 'Died on reply 2, 2 min ago' })).toBeUndefined()
   await $.classic.PostCompact({ trigger: 'auto', compact_summary: 'external compaction' })
   expect(env.state()).toMatchObject({ alive: true, recovery: 'recovered', lastAutoCompactAt: null })
   await ui.unmount()
@@ -330,30 +338,75 @@ check('keeps other mods annotations, usage and duplicate protection', async ($, 
   expect(result.usage).toEqual(usage)
 })
 
-check('terminal and Desktop preserve the colored cage and silent animation at 1 Hz', async ($, on) => {
+check('terminal draws pixel art with half blocks, Desktop an SVG, and the animation stays at 1 Hz', async ($, on) => {
   const env = setup(on)
   await $.session.start(START)
   expect(env.commands).toEqual(['canary', 'canario'])
-  for (const surface of ['terminal', 'desktop'] as const) {
-    const ui = await $.ui.mount({ ...BAND, surface })
-    expect(await ui.find({ text: 'Other mod' })).toBeDefined()
-    expect((await ui.find({ key: 'canary' }))?.props.height).toBe(5)
-    expect(rows(await ui.find({ key: 'canary-cage' }))).toEqual(['╭─┬───◯───┬─╮', '│ │       │ │', '│ │ (●>   │ │', '│ │ /))   │ │', '╰─┴──┴┴───┴─╯'])
-    expect((await ui.find({ text: /^●$/ }))?.props.color).toBe('cyan')
-    await ui.unmount()
-  }
+  const terminal = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await terminal.find({ text: 'Other mod' })).toBeDefined()
+  expect((await terminal.find({ key: 'canary' }))?.props.height).toBe(SPRITES.normal.height / 2)
+  const art = await terminal.find({ key: 'canary-art' })
+  expect(art?.type).toBe('Raster')
+  expect(art?.props).toMatchObject({ columns: SPRITES.normal.width, rows: SPRITES.normal.height / 2, cells: cellsOf('idle') })
+  // Only the canary: no text beside the cage unless showDetails is on.
+  expect(await terminal.find({ text: 'Canary alive' })).toBeUndefined()
+  expect(await terminal.find({ text: /Streak/ })).toBeUndefined()
+  await terminal.unmount()
+  const desktop = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const svg = await desktop.find({ type: 'Svg' })
+  expect(svg?.props.source).toBe(svgSource(SPRITES.normal.frames.idle, PALETTE, 4))
+  expect(svg?.props.alt).toBe('🐤 Canary alive')
+  await desktop.unmount()
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
-  await env.clock.advance(4000)
-  expect(await ui.find({ text: 'peep' })).toBeDefined()
-  await env.clock.advance(1000)
-  expect(rows(await ui.find({ key: 'canary-cage' }))[1]).toBe('│ │ (●>   │ │')
-  await env.clock.advance(1000)
-  expect(env.invalidations).toEqual([4000, 5000, 6000])
+  const seen: (Frame | undefined)[] = []
+  for (let i = 0; i < 6; i++) { await env.clock.advance(1000); seen.push(await frameOf(ui)) }
+  expect(seen).toEqual(['idle', 'blink', 'idle', 'chirp', 'hop', 'idle'])
+  expect(env.invalidations).toEqual([2000, 3000, 4000, 5000, 6000])
   await $.session.end({ reason: 'other', sessionId: 's', resume: { id: 's' } })
   await env.clock.advance(60000)
-  expect(env.invalidations).toEqual([4000, 5000, 6000])
+  expect(env.invalidations).toEqual([2000, 3000, 4000, 5000, 6000])
   await ui.unmount()
 })
+
+check('a dead canary is the grey dead frame and does not animate', async ($, on) => {
+  const env = setup(on)
+  await $.session.start(START)
+  await $.turn.complete(done('No sentinel'))
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await frameOf(ui)).toBe('dead')
+  const before = env.invalidations.length
+  await env.clock.advance(10_000)
+  expect(env.invalidations.length).toBe(before)
+  expect(await frameOf(ui)).toBe('dead')
+  await ui.unmount()
+}, { autoCompact: false })
+
+check('large size draws the 8-row sprite and needs the room for it', async ($, on) => {
+  setup(on)
+  await $.session.start(START)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ key: 'canary-art' }))?.props).toMatchObject({ rows: SPRITES.large.height / 2, cells: cellsOf('idle', 'large') })
+  await ui.unmount()
+  const tight = await $.ui.mount({ ...BAND, surface: 'terminal', props: { ...BAND.props, maxRows: SPRITES.large.height / 2 - 1 } })
+  expect(await tight.find({ key: 'canary-art' })).toBeUndefined()
+  expect((await tight.find({ key: 'canary' }))?.props.height).toBe(1)
+  await tight.unmount()
+}, { size: 'large' })
+
+check('showDetails puts streak and death details beside the cage', async ($, on) => {
+  const env = setup(on)
+  await $.session.start(START)
+  await $.turn.complete(done('🐤 first'))
+  let ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await ui.find({ text: 'Canary alive' })).toBeDefined()
+  expect(await ui.find({ text: 'Streak: 1 · "🐤"' })).toBeDefined()
+  await ui.unmount()
+  await $.turn.complete(done('Missing'))
+  await env.clock.advance(120_000)
+  ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await ui.find({ text: 'Died on reply 2, 2 min ago' })).toBeDefined()
+  await ui.unmount()
+}, { showDetails: true, autoCompact: false })
 
 check('narrow viewport or few rows gives a one-line status on both surfaces', async ($, on) => {
   setup(on)
@@ -434,7 +487,7 @@ check('repeated session.start preserves healthy state and leaves only one animat
   await $.session.start(START)
   await env.clock.advance(6000)
   expect(env.state()).toMatchObject({ responses: 7, streak: 7, lastAutoCompactAt: 0 })
-  expect(env.invalidations).toEqual([4000, 5000, 6000])
+  expect(env.invalidations).toEqual([2000, 3000, 4000, 5000, 6000])
 })
 
 check('bodyColumns and maxRows also select the compact layout', async ($, on) => {

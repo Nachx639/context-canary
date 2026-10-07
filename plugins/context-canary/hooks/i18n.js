@@ -1,7 +1,7 @@
 // All runtime UI and model-facing text lives here. Manifest labels are English.
 export const translations = {
   en: {
-    alive: 'Canary alive', dead: 'Canary dead', chirp: 'peep',
+    alive: 'Canary alive', dead: 'Canary dead',
     death: 'The canary died: the final reply did not start with {word}.',
     pending: 'Automatic compaction queued for after the turn.',
     compacting: 'Compacting; preserving your instructions.',
@@ -13,10 +13,8 @@ export const translations = {
     notifyOnly: 'Automatic compaction is off. The canary remains dead.',
     revived: 'Canary revived; streak reset.', stillAlive: 'The canary is still alive; streak reset.',
     status: '{health} · word: {word} · streak: {streak} · checked: {responses}',
-    streak: 'Streak: {streak} · {word}', waiting: 'Waiting for the first final reply',
-    greeting: 'The sentinel is still present',
+    streak: 'Streak: {streak} · {word}',
     diedAt: 'Died on reply {response}, {minutes} min ago', preview: 'Starts: {preview}',
-    hint: '/canary revive · /clear: new context',
     command: 'Canary status, revival and instruction setup',
     argumentHint: '[status | revive | setup | remove]',
     help: '/canary [status | revive | setup | remove]',
@@ -34,7 +32,7 @@ export const translations = {
     noHome: 'The host did not provide an absolute home directory. No files changed.',
   },
   es: {
-    alive: 'Canario vivo', dead: 'Canario muerto', chirp: 'pío',
+    alive: 'Canario vivo', dead: 'Canario muerto',
     death: 'El canario ha muerto: la respuesta final no empezaba por {word}.',
     pending: 'Compactación automática pendiente de que termine el turno.',
     compacting: 'Compactando; conservando tus instrucciones.',
@@ -46,10 +44,8 @@ export const translations = {
     notifyOnly: 'La compactación automática está desactivada. El canario sigue muerto.',
     revived: 'Canario revivido; racha a cero.', stillAlive: 'El canario sigue vivo; racha a cero.',
     status: '{health} · palabra: {word} · racha: {streak} · comprobadas: {responses}',
-    streak: 'Racha: {streak} · {word}', waiting: 'Esperando la primera respuesta final',
-    greeting: 'El saludo sigue presente',
+    streak: 'Racha: {streak} · {word}',
     diedAt: 'Murió en la respuesta {response}, hace {minutes} min', preview: 'Empieza: {preview}',
-    hint: '/canary revive · /clear: contexto nuevo',
     command: 'Estado, recuperación y configuración del canario',
     argumentHint: '[status | revive | setup | remove]',
     help: '/canary [status | revive | setup | remove]',

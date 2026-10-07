@@ -1,8 +1,10 @@
 import { atom, read, update } from 'claude-code'
 import { translate } from './i18n.js'
+import { rasterCells, svgSource } from './pixels.js'
+import { PALETTE, SPRITES } from './sprites.js'
 
 /** @typedef {import('claude-code').PluginState['context-canary']['canary']} Canary */
-/** @typedef {{ word: string, autoCompact: boolean, cooldownMinutes: number, language: 'en'|'es' }} Config */
+/** @typedef {{ word: string, autoCompact: boolean, cooldownMinutes: number, language: 'en'|'es', size: 'normal'|'large', showDetails: boolean }} Config */
 /** @typedef {{ interactive: boolean, activeTurn: string|null, timer: import('claude-code').Timer|null, recoveryTimer: import('claude-code').Timer|null, epoch: number, inFlight: boolean, beat: number, pose: string }} Runtime */
 
 /** @returns {Canary} */
@@ -21,6 +23,8 @@ export function configuration(options = {}) {
     cooldownMinutes: typeof options.cooldownMinutes === 'number' && Number.isFinite(options.cooldownMinutes)
       ? Math.max(0, Math.min(10080, options.cooldownMinutes)) : 30,
     language: options.language === 'es' ? 'es' : 'en',
+    size: options.size === 'large' ? 'large' : 'normal',
+    showDetails: options.showDetails === true,
   }
 }
 
@@ -86,7 +90,7 @@ function cancelRecovery(runtime) {
 function startClock($, runtime, alive) {
   stopClock(runtime)
   runtime.beat = 0
-  runtime.pose = 'quiet'
+  runtime.pose = 'idle'
   if (!runtime.interactive) return
   if (!alive) {
     runtime.timer = $.clock.every(60_000, () => $.ui.invalidate('ui.render'))
@@ -94,7 +98,7 @@ function startClock($, runtime, alive) {
   }
   runtime.timer = $.clock.every(1000, () => {
     runtime.beat = (runtime.beat + 1) % 8
-    const nextPose = runtime.beat === 4 ? 'chirp' : runtime.beat === 5 ? 'hop' : 'quiet'
+    const nextPose = runtime.beat === 2 ? 'blink' : runtime.beat === 4 ? 'chirp' : runtime.beat === 5 ? 'hop' : 'idle'
     if (runtime.pose !== nextPose) {
       runtime.pose = nextPose
       $.ui.invalidate('ui.render')
@@ -204,7 +208,7 @@ export function register(on, options = {}) {
   const config = configuration(options)
   /** @type {Runtime} */
   const runtime = { interactive: false, activeTurn: null, timer: null, recoveryTimer: null,
-    epoch: 0, inFlight: false, beat: 0, pose: 'quiet' }
+    epoch: 0, inFlight: false, beat: 0, pose: 'idle' }
 
   on('session.start', async ($, e, next) => {
     runtime.interactive = e.isInteractive
@@ -310,47 +314,47 @@ export function register(on, options = {}) {
     const theirs = await next(e)
     if (!runtime.interactive || e.props.view?.agentId || e.props.hasSurvey) return theirs
     const columns = Math.max(0, Math.min(e.props.bodyColumns ?? 80, e.viewport?.columns ?? 80))
-    const rows = Math.min(e.props.maxRows ?? 5, e.viewport?.rows ?? 5)
+    const rows = Math.min(e.props.maxRows ?? 12, e.viewport?.rows ?? 12)
     if (columns < 1 || rows < 1) return theirs
     const state = await read($, canary)
-    const { Box, Text } = $.ui.resolve(e)
-    const text = status(config, state).replace(/\n/g, ' · ')
-    // Box and Text are shared by terminal and Desktop in 2.1.293. Keep a
-    // text fallback for a host/custom resolver that omits either constructor.
-    if (!Box || !Text) return { type: 'Text', props: {}, children: [theirs, text] }
-    if (columns < 50 || rows < 5) return Box({ flexDirection: 'column', children: [theirs,
-      Box({ key: 'canary', width: columns, height: 1, children: [Text({ wrap: 'truncate', children: [text] })] })] })
+    const elements = /** @type {Record<string, any>} */ ($.ui.resolve(e))
+    const { Box, Text, Raster, Svg } = elements
     const dead = !state.alive
-    const hop = !dead && runtime.pose === 'hop'
-    const chirp = !dead && runtime.pose === 'chirp'
-    const ink = dead ? 'gray' : 'yellow'
-    /** @param {string} value @param {string} [color] */
-    const span = (value, color = ink) => Text({ color, children: [value] })
-    /** @param {import('claude-code').RenderNode[]} children */
-    const line = (children) => Text({ wrap: 'truncate', children })
-    /** @param {import('claude-code').RenderNode[]} inside */
-    const bars = (inside) => line([span('│ │ ', 'gray'), ...inside, span(' │ │', 'gray')])
-    const head = () => [span('('), span('●', 'cyan'), span('>', '#ffaf00'), span('  ')]
-    const body = () => [span('/))  ')]
-    const cage = Box({ key: 'canary-cage', width: 13, height: 5, flexShrink: 0, flexDirection: 'column', children: [
-      line([span('╭─┬───', 'gray'), span('◯', ink), span('───┬─╮', 'gray')]),
-      bars(hop ? head() : [span(chirp ? (' ' + t(config, 'chirp')).padEnd(5) : '     ')]),
-      bars(dead ? [span(' vv  ')] : hop ? body() : head()),
-      bars(dead ? [span('<'), span('XX'), span(') ')] : hop ? [span(' ^^  ')] : body()),
-      line([span(dead || hop ? '╰─┴───────┴─╯' : '╰─┴──┴┴───┴─╯', 'gray')]),
-    ] })
-    /** @param {string} value @param {import('claude-code').TextProps} [props] */
-    const label = (value, props = {}) => Text({ wrap: 'truncate', ...props, children: [value] })
-    const labels = [label(t(config, dead ? 'dead' : 'alive'), { color: ink, bold: true }),
-      label(t(config, 'streak', { streak: state.streak }))]
-    if (dead && state.death) {
-      labels.push(label(t(config, 'diedAt', { response: state.death.response,
-        minutes: Math.max(0, Math.floor(((await $.clock.now()) - state.death.at) / 60_000)) })))
-      labels.push(label(t(config, 'preview', { preview: state.death.preview }), { dimColor: true }))
-    } else labels.push(label(t(config, state.responses ? 'greeting' : 'waiting'), { dimColor: true }))
-    labels.push(label(note(config, state) || t(config, 'hint'), { dimColor: true }))
+    const frame = dead ? 'dead' : runtime.pose
+    const sprite = SPRITES[config.size]
+    const pixels = sprite.frames[/** @type {keyof typeof sprite.frames} */ (frame)] ?? sprite.frames.idle
+    const spriteRows = Math.ceil(sprite.height / 2)
+    const short = '🐤 ' + t(config, dead ? 'dead' : 'alive')
+    // Box and Text are shared by terminal and Desktop. Keep a text fallback
+    // for a host/custom resolver that omits either constructor.
+    if (!Box || !Text) return { type: 'Text', props: {}, children: [theirs, short] }
+    const oneLine = (/** @type {string} */ value) => Box({ flexDirection: 'column', children: [theirs,
+      Box({ key: 'canary', width: columns, height: 1, children: [Text({ wrap: 'truncate', color: dead ? 'gray' : 'yellow', children: [value] })] })] })
+    if (columns < sprite.width || rows < spriteRows) return oneLine(config.showDetails ? status(config, state).replace(/\n/g, ' · ') : short)
+
+    let art
+    if (Raster && e.surface === 'terminal') {
+      art = Raster({ key: 'canary-art', ...rasterCells(pixels, PALETTE) })
+    } else if (Svg) {
+      art = Svg({ source: svgSource(pixels, PALETTE, 4), alt: short, width: sprite.width * 4, height: sprite.height * 4 })
+    } else return oneLine(short)
+
+    const children = [Box({ key: 'canary-cage', flexShrink: 0, children: [art] })]
+    if (config.showDetails) {
+      /** @param {string} value @param {import('claude-code').TextProps} [props] */
+      const label = (value, props = {}) => Text({ wrap: 'truncate', ...props, children: [value] })
+      const labels = [label(t(config, dead ? 'dead' : 'alive'), { color: dead ? 'gray' : 'yellow', bold: true }),
+        label(t(config, 'streak', { streak: state.streak }))]
+      if (dead && state.death) {
+        labels.push(label(t(config, 'diedAt', { response: state.death.response,
+          minutes: Math.max(0, Math.floor(((await $.clock.now()) - state.death.at) / 60_000)) })))
+        labels.push(label(t(config, 'preview', { preview: state.death.preview }), { dimColor: true }))
+      }
+      const extra = note(config, state)
+      if (extra) labels.push(label(extra, { dimColor: true }))
+      children.push(Box({ flexDirection: 'column', flexGrow: 1, flexShrink: 1, justifyContent: 'center', children: labels }))
+    }
     return Box({ flexDirection: 'column', children: [theirs, Box({ key: 'canary', flexDirection: 'row',
-      columnGap: 1, width: columns, height: 5, children: [cage, Box({ flexDirection: 'column', flexGrow: 1,
-        flexShrink: 1, justifyContent: 'center', children: labels })] })] })
+      columnGap: 2, width: columns, height: e.surface === 'terminal' ? spriteRows : undefined, children })] })
   })
 }

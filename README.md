@@ -45,6 +45,8 @@ edits settings. Restart the session after changing options if it has not reloade
 | `autoCompact` | `true` | Compact after death. `false` means notifications only. |
 | `cooldownMinutes` | `30` | A second death **less than** this many minutes after successful automatic compaction locks recovery. Range 0–10080; `0` disables the window. |
 | `language` | `en` | `en` or `es`. 2.1.293 exposes no UI locale accessor, so language is explicit. |
+| `size` | `normal` | `normal` (20×6 cells) or `large` (24×8 cells) pixel-art canary. |
+| `showDetails` | `false` | Show streak and recovery notes beside the cage. Off: only the canary. |
 
 After changing `word` or the rule's language, run `/canary setup` again to update
 the managed rule. Matching ignores case and accents, allows bold, quotes,
@@ -106,11 +108,14 @@ compaction is in flight, revival reports its status and waits for the result.
 `/clear`, session shutdown and manual revival cancel queued work; an old result
 cannot revive a different context.
 
-The cage keeps the visual chirp and hop at at most one animation update per
-second. There is no audio. Terminal and Desktop share `Box` and `Text`; a text
-fallback is available if a host omits them. Below 50 columns or five available
-rows, the display uses one truncated line, respecting `e.viewport` and the
-band's own dimensions. Surveys and subagent views retain the host's display.
+The band shows **only the canary in its cage**, drawn as pixel art: in the
+terminal a `Raster` of half blocks (two pixels per cell), in Desktop a crisp
+`Svg` of the same pixels. It blinks, chirps and hops with at most one redraw
+per second; the dead bird lies belly-up, grey and still. There is no audio.
+Details stay in the shadows: toasts on death and recovery, and `/canary status`
+for streak and history. Set `showDetails` to put them beside the cage. When the
+sprite does not fit (`size` normal: 20 columns × 6 rows, large: 24 × 8), the
+display falls back to one line. Surveys and subagent views retain the host's display.
 
 Health/history and cooldown live in host `$.state`, surviving module reloads,
 but not process restarts. Claude Code resets that state on `/clear`, `/resume`
@@ -171,11 +176,15 @@ precedence over a newer or older website.
 .claude-plugin/plugin.json          Root development test entry
 hooks/hooks.json                    Loads the shipped module for root tests
 plugins/context-canary/
-  .claude-plugin/plugin.json        Plugin manifest, 1.0.0 and userConfig
-  hooks/{hooks.json,register.js,i18n.js}
+  .claude-plugin/plugin.json        Plugin manifest, 1.1.0 and userConfig
+  hooks/{hooks.json,register.js,i18n.js,pixels.js}
+  hooks/sprites.js                 Generated from design/sprites.json
+
   types/index.d.ts                 Host state contract
   tests/canary.test.ts
 .github/workflows/test.yml
+design/                             Pixel-art source, preview.html, render.py
+scripts/build-sprites.mjs           design/sprites.json → hooks/sprites.js
 README.md · README.es.md · CHANGELOG.md · LICENSE
 ```
 

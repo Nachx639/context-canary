@@ -46,6 +46,8 @@ cambiar opciones si el host no ha recargado el módulo.
 | `autoCompact` | `true` | Compacta después de morir. En `false`, solo avisa. |
 | `cooldownMinutes` | `30` | Si vuelve a morir antes de ese tiempo tras una compactación automática correcta, bloquea la recuperación. De 0 a 10080; `0` desactiva la ventana. |
 | `language` | `en` | `en` o `es`. La API 2.1.293 no expone el locale de la interfaz, así que se elige por configuración. |
+| `size` | `normal` | Canario en pixel art `normal` (20×6 celdas) o `large` (24×8 celdas). |
+| `showDetails` | `false` | Muestra la racha y las notas de recuperación junto a la jaula. Desactivado: solo el canario. |
 
 Si cambias la palabra o el idioma de la regla, repite `/canary setup` para
 actualizar el bloque. Se aceptan negrita, comillas, signos y emojis delante;
@@ -107,12 +109,14 @@ manualmente no lo elimina. Con una compactación en curso, revive devuelve su
 estado y espera al resultado. `/clear`, cerrar la sesión o revivir manualmente
 cancelan una recuperación pendiente, y un resultado antiguo no revive otro contexto.
 
-Se conserva la jaula, el pío visual y el salto, con como máximo una actualización
-de animación por segundo. **No hay audio**. Terminal y Desktop comparten `Box`
-y `Text`; existe una alternativa de texto si faltan. Con menos de 50 columnas
-o cinco filas disponibles, muestra una línea truncada, teniendo en cuenta
-`e.viewport` y el ancho propio del panel. Se oculta durante encuestas y al mirar
-un subagente.
+La franja muestra **solo el canario en su jaula**, en pixel art: en la terminal
+un `Raster` de medios bloques (dos píxeles por celda) y en Desktop un `Svg`
+nítido con los mismos píxeles. Parpadea, pía y salta con como máximo un
+redibujado por segundo; muerto queda boca arriba, gris y quieto. **No hay audio**.
+Lo demás ocurre en la sombra: toasts al morir y al recuperarse, y `/canary status`
+para la racha y el historial. Con `showDetails` se muestran junto a la jaula.
+Si el dibujo no cabe (`size` normal: 20 columnas × 6 filas; large: 24 × 8),
+muestra una sola línea. Se oculta durante encuestas y al mirar un subagente.
 
 El historial y la ventana se guardan en `$.state`: sobreviven a la recarga del
 módulo, no a reiniciar el proceso. El host reinicia ese estado con `/clear`,

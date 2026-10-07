@@ -1,6 +1,6 @@
 {
   "name": "context-canary",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A context canary with an animated cage, configurable sentinel and automatic recovery.",
   "author": {
     "name": "Context Canary contributors"
@@ -37,6 +37,22 @@
         "en",
         "es"
       ]
+    },
+    "size": {
+      "type": "string",
+      "title": "Canary size",
+      "description": "normal (about 5 terminal rows) or large (about 8 rows).",
+      "default": "normal",
+      "options": [
+        "normal",
+        "large"
+      ]
+    },
+    "showDetails": {
+      "type": "boolean",
+      "title": "Show details beside the cage",
+      "description": "Show streak and recovery notes next to the canary. Off: only the canary; /canary status has the details.",
+      "default": false
     }
   }
 }
