@@ -41,9 +41,11 @@
     "size": {
       "type": "string",
       "title": "Canary size",
-      "description": "normal (about 5 terminal rows) or large (about 8 rows).",
+      "description": "tiny (3 terminal rows), small (4), normal (6) or large (8).",
       "default": "normal",
       "options": [
+        "tiny",
+        "small",
         "normal",
         "large"
       ]

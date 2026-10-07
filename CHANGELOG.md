@@ -5,7 +5,7 @@
 - Pixel-art canary and cage: half-block `Raster` in the terminal, `Svg` in Desktop, same pixels.
 - Blink, chirp and hop frames at most once per second; a grey belly-up dead bird that stays still.
 - Only the canary in the band by default; `showDetails` brings back the text beside the cage.
-- New `size` option: `normal` (20×6 cells) or `large` (24×8 cells); one-line fallback when it does not fit.
+- New `size` option: `tiny` (10×3 cells), `small` (14×4), `normal` (20×6) or `large` (24×8), each drawn by hand; one-line fallback when it does not fit.
 - Art source in `design/` (sprites, preview, renderer) and `scripts/build-sprites.mjs`.
 
 ## 1.0.0 — 2026-10-07

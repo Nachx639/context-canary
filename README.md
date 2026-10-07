@@ -45,7 +45,7 @@ edits settings. Restart the session after changing options if it has not reloade
 | `autoCompact` | `true` | Compact after death. `false` means notifications only. |
 | `cooldownMinutes` | `30` | A second death **less than** this many minutes after successful automatic compaction locks recovery. Range 0–10080; `0` disables the window. |
 | `language` | `en` | `en` or `es`. 2.1.293 exposes no UI locale accessor, so language is explicit. |
-| `size` | `normal` | `normal` (20×6 cells) or `large` (24×8 cells) pixel-art canary. |
+| `size` | `normal` | Pixel-art canary: `tiny` (10×3 cells), `small` (14×4), `normal` (20×6) or `large` (24×8). |
 | `showDetails` | `false` | Show streak and recovery notes beside the cage. Off: only the canary. |
 
 After changing `word` or the rule's language, run `/canary setup` again to update
@@ -114,7 +114,7 @@ terminal a `Raster` of half blocks (two pixels per cell), in Desktop a crisp
 per second; the dead bird lies belly-up, grey and still. There is no audio.
 Details stay in the shadows: toasts on death and recovery, and `/canary status`
 for streak and history. Set `showDetails` to put them beside the cage. When the
-sprite does not fit (`size` normal: 20 columns × 6 rows, large: 24 × 8), the
+sprite does not fit (from `tiny` 10 columns × 3 rows to `large` 24 × 8), the
 display falls back to one line. Surveys and subagent views retain the host's display.
 
 Health/history and cooldown live in host `$.state`, surviving module reloads,

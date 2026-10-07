@@ -194,5 +194,107 @@ export const SPRITES = {
         "..gggggggggggggggggggg.."
       ]
     }
+  },
+  "small": {
+    "width": 14,
+    "height": 8,
+    "frames": {
+      "idle": [
+        ".....HHGG.....",
+        "..HHH....GGG..",
+        ".H....WYY...G.",
+        "G.g...YwKYOg.G",
+        "G.g.WUYYyW.g.G",
+        "G.gSWWUyy..g.G",
+        "G.g...o.o..g.G",
+        "gHHHGGGGGGGGgg"
+      ],
+      "blink": [
+        ".....HHGG.....",
+        "..HHH....GGG..",
+        ".H....WYY...G.",
+        "G.g...YKKYOg.G",
+        "G.g.WUYYyW.g.G",
+        "G.gSWWUyy..g.G",
+        "G.g...o.o..g.G",
+        "gHHHGGGGGGGGgg"
+      ],
+      "chirp": [
+        ".....HHGG.....",
+        "..HHH....GGG..",
+        ".H....WYY.O.G.",
+        "G.g...YwKYKg.G",
+        "G.g.WUYYyWOg.G",
+        "G.gSWWUyy..g.G",
+        "G.g...o.o..g.G",
+        "gHHHGGGGGGGGgg"
+      ],
+      "hop": [
+        ".....HHGG.....",
+        "..HHH.WYYGGG..",
+        ".H....YwKYO.G.",
+        "G.g.WUYYyW.g.G",
+        "G.gSWWUyy..g.G",
+        "G.g...o.o..g.G",
+        "G.g........g.G",
+        "gHHHGGGGGGGGgg"
+      ],
+      "dead": [
+        ".....HHGG.....",
+        "..HHH....GGG..",
+        ".H..........G.",
+        "G.g..o.o...g.G",
+        "G.g..o.o...g.G",
+        "G.g.dEEEDxDg.G",
+        "G.gsdDddEDog.G",
+        "gHHHGGGGGGGGgg"
+      ]
+    }
+  },
+  "tiny": {
+    "width": 10,
+    "height": 6,
+    "frames": {
+      "idle": [
+        "...HHGG...",
+        ".HH.WY.GG.",
+        "G..YwKO..G",
+        "G.WYyW...G",
+        "G..o.o...G",
+        "gHHGGGGGGg"
+      ],
+      "blink": [
+        "...HHGG...",
+        ".HH.WY.GG.",
+        "G..YKKO..G",
+        "G.WYyW...G",
+        "G..o.o...G",
+        "gHHGGGGGGg"
+      ],
+      "chirp": [
+        "...HHGG...",
+        ".HH.WYOGG.",
+        "G..YwKK..G",
+        "G.WYyWO..G",
+        "G..o.o...G",
+        "gHHGGGGGGg"
+      ],
+      "hop": [
+        "...HHGG...",
+        ".HHYwKOGG.",
+        "G.WYyW...G",
+        "G..o.o...G",
+        "G........G",
+        "gHHGGGGGGg"
+      ],
+      "dead": [
+        "...HHGG...",
+        ".HH....GG.",
+        "G..o.o...G",
+        "G..EEDxD.G",
+        "G.sdDDDo.G",
+        "gHHGGGGGGg"
+      ]
+    }
   }
 }

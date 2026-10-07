@@ -20,14 +20,16 @@ def load_sprites():
     palette = data["palette"]
     if "." in palette or not all(len(k) == 1 and re.fullmatch(r"#[0-9a-fA-F]{6}", v) for k, v in palette.items()):
         raise ValueError("Palette requires single characters and #rrggbb colors; '.' is transparent.")
-    if set(data["sizes"]) != {"normal", "large"}:
-        raise ValueError("Expected normal and large sizes.")
+    if set(data["sizes"]) != {"normal", "large", "small", "tiny"}:
+        raise ValueError("Expected normal, large, small and tiny sizes.")
     for name, size in data["sizes"].items():
         w, h = size["width"], size["height"]
         if not isinstance(w, int) or not isinstance(h, int):
             raise ValueError(f"{name}: dimensions must be integers")
-        if not ((name == "normal" and 1 <= w <= 20 and h in (10, 12)) or
-                (name == "large" and 20 <= w <= 24 and h == 16)):
+        if not ((name == "normal" and (w, h) == (20, 12)) or
+                (name == "large" and (w, h) == (24, 16)) or
+                (name == "small" and 1 <= w <= 14 and h == 8) or
+                (name == "tiny" and 1 <= w <= 10 and h == 6)):
             raise ValueError(f"{name}: dimensions outside the requested limits")
         if set(size["frames"]) != set(FRAMES):
             raise ValueError(f"{name}: incorrect frame set")
@@ -52,7 +54,7 @@ def raster(data, size_name, frame_name):
 
 
 def contact_sheet(data, native, scale):
-    # Equal pixel scale in both sizes: normal is truly smaller, never stretched.
+    # Equal pixel scale for every size preserves their relative footprints.
     gutter, label_height, heading = 20, 30, 62
     cell_width = 24 * scale + 2 * gutter
     row_heights = {name: size["height"] * scale + label_height + 2 * gutter for name, size in data["sizes"].items()}
@@ -114,7 +116,8 @@ def main():
                 flat.convert("RGB").save(ROOT / f"{stem}-{theme}.png")
     contact_sheet(data, native, min(args.scale, 16))
     sync_preview(data)
-    print("Rendered 10 transparent PNGs, 20 background variants, contact-sheet.png; preview JSON synchronized.")
+    count = len(data["sizes"]) * len(FRAMES)
+    print(f"Rendered {count} transparent PNGs, {count * len(BACKGROUNDS)} background variants, contact-sheet.png; preview JSON synchronized.")
 
 
 if __name__ == "__main__":

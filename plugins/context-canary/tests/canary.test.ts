@@ -80,7 +80,7 @@ function children(node: unknown): unknown[] {
 const shown = (node: unknown): string => typeof node === 'string' ? node : children(node).map(shown).join('')
 const rows = (node: unknown) => children(node).map(shown)
 type Frame = 'idle' | 'blink' | 'chirp' | 'hop' | 'dead'
-const cellsOf = (frame: Frame, size: 'normal' | 'large' = 'normal') => rasterCells(SPRITES[size].frames[frame], PALETTE).cells
+const cellsOf = (frame: Frame, size: 'tiny' | 'small' | 'normal' | 'large' = 'normal') => rasterCells(SPRITES[size].frames[frame], PALETTE).cells
 async function frameOf(ui: { find: (q: object) => Promise<any> }) {
   const art = await ui.find({ key: 'canary-art' })
   return (['idle', 'blink', 'chirp', 'hop', 'dead'] as const).find((f) => cellsOf(f) === art?.props.cells)
@@ -392,6 +392,32 @@ check('large size draws the 8-row sprite and needs the room for it', async ($, o
   expect((await tight.find({ key: 'canary' }))?.props.height).toBe(1)
   await tight.unmount()
 }, { size: 'large' })
+
+check('small size draws a 4-row hand-drawn sprite', async ($, on) => {
+  const env = setup(on)
+  await $.session.start(START)
+  let ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(SPRITES.small.height / 2).toBe(4)
+  expect((await ui.find({ key: 'canary-art' }))?.props).toMatchObject({ rows: 4, columns: SPRITES.small.width, cells: cellsOf('idle', 'small') })
+  await ui.unmount()
+  await $.turn.complete(done('No sentinel'))
+  ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ key: 'canary-art' }))?.props.cells).toBe(cellsOf('dead', 'small'))
+  await ui.unmount()
+}, { size: 'small', autoCompact: false })
+
+check('tiny size draws a 3-row hand-drawn sprite', async ($, on) => {
+  const env = setup(on)
+  await $.session.start(START)
+  let ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(SPRITES.tiny.height / 2).toBe(3)
+  expect((await ui.find({ key: 'canary-art' }))?.props).toMatchObject({ rows: 3, columns: SPRITES.tiny.width, cells: cellsOf('idle', 'tiny') })
+  await ui.unmount()
+  await $.turn.complete(done('No sentinel'))
+  ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ key: 'canary-art' }))?.props.cells).toBe(cellsOf('dead', 'tiny'))
+  await ui.unmount()
+}, { size: 'tiny', autoCompact: false })
 
 check('showDetails puts streak and death details beside the cage', async ($, on) => {
   const env = setup(on)

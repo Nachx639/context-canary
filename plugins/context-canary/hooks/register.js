@@ -4,7 +4,7 @@ import { rasterCells, svgSource } from './pixels.js'
 import { PALETTE, SPRITES } from './sprites.js'
 
 /** @typedef {import('claude-code').PluginState['context-canary']['canary']} Canary */
-/** @typedef {{ word: string, autoCompact: boolean, cooldownMinutes: number, language: 'en'|'es', size: 'normal'|'large', showDetails: boolean }} Config */
+/** @typedef {{ word: string, autoCompact: boolean, cooldownMinutes: number, language: 'en'|'es', size: 'tiny'|'small'|'normal'|'large', showDetails: boolean }} Config */
 /** @typedef {{ interactive: boolean, activeTurn: string|null, timer: import('claude-code').Timer|null, recoveryTimer: import('claude-code').Timer|null, epoch: number, inFlight: boolean, beat: number, pose: string }} Runtime */
 
 /** @returns {Canary} */
@@ -23,7 +23,7 @@ export function configuration(options = {}) {
     cooldownMinutes: typeof options.cooldownMinutes === 'number' && Number.isFinite(options.cooldownMinutes)
       ? Math.max(0, Math.min(10080, options.cooldownMinutes)) : 30,
     language: options.language === 'es' ? 'es' : 'en',
-    size: options.size === 'large' ? 'large' : 'normal',
+    size: typeof options.size === 'string' && ['tiny', 'small', 'normal', 'large'].includes(options.size) ? /** @type {Config['size']} */ (options.size) : 'normal',
     showDetails: options.showDetails === true,
   }
 }
