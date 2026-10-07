@@ -1,5 +1,6 @@
 {
   "name": "context-canary",
+  "displayName": "Context Canary",
   "version": "1.1.0",
   "description": "A context canary with an animated cage, configurable sentinel and automatic recovery.",
   "author": {

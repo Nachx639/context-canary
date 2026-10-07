@@ -1,5 +1,6 @@
 {
   "name": "context-canary",
+  "displayName": "Context Canary",
   "version": "1.1.0",
   "description": "Development test entry for the Context Canary marketplace; installs use plugins/context-canary.",
   "author": {
