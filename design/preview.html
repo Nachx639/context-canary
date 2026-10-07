@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="es" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
-  <title>Canario · estudio de píxeles</title>
+  <title>Context Canary · pixel study</title>
   <style>
     :root { color-scheme:dark; --page:#10141b; --panel:#1c222c; --stage:#171b23; --ink:#edf0ec; --muted:#a5aebd; --line:#343e4c; --accent:#f7cc32; --accent-ink:#201d10; }
     :root[data-theme="light"] { color-scheme:light; --page:#e9e5dd; --panel:#fffdf6; --stage:#f5f1e8; --ink:#29343e; --muted:#626b73; --line:#c9c5bc; --accent:#725514; --accent-ink:#fff9dc; }
@@ -61,25 +61,25 @@
   <main class="page">
     <header>
       <div>
-        <p class="eyebrow">Estudio de píxeles · 01</p>
-        <h1>Un pequeño centinela.</h1>
-        <p class="intro">Un canario para Claude Code. Vivo mientras conserva tus instrucciones; gris y tumbado cuando las pierde.</p>
+        <p class="eyebrow">Pixel study · 01</p>
+        <h1>A tiny sentinel.</h1>
+        <p class="intro">A canary for Claude Code. Alive while it keeps your instructions; grey and belly-up when it loses them.</p>
       </div>
-      <div class="themes" role="group" aria-label="Fondo de la previsualización">
-        <button type="button" data-theme="dark" aria-pressed="true">Oscuro</button>
-        <button type="button" data-theme="light" aria-pressed="false">Claro</button>
+      <div class="themes" role="group" aria-label="Preview background">
+        <button type="button" data-theme="dark" aria-pressed="true">Dark</button>
+        <button type="button" data-theme="light" aria-pressed="false">Light</button>
       </div>
     </header>
-    <div class="toolbar" aria-label="Controles de animación">
-      <div class="control"><label for="pose">Estado</label><select id="pose"><option value="auto">Animación</option><option value="idle">Reposo · idle</option><option value="blink">Parpadeo · blink</option><option value="chirp">Pío · chirp</option><option value="hop">Saltito · hop</option><option value="dead">Muerto · dead</option></select></div>
-      <button id="pause" type="button" aria-pressed="false">Pausar</button>
-      <div class="control"><label for="zoom">Píxel</label><input id="zoom" type="range" min="1" max="8" value="6" step="1"><output id="zoom-value" for="zoom">6×</output></div>
+    <div class="toolbar" aria-label="Animation controls">
+      <div class="control"><label for="pose">State</label><select id="pose"><option value="auto">Animation</option><option value="idle">Idle</option><option value="blink">Blink</option><option value="chirp">Chirp</option><option value="hop">Hop</option><option value="dead">Dead</option></select></div>
+      <button id="pause" type="button" aria-pressed="false">Pause</button>
+      <div class="control"><label for="zoom">Pixel</label><input id="zoom" type="range" min="1" max="8" value="6" step="1"><output id="zoom-value" for="zoom">6×</output></div>
       <span id="frame-status">idle</span>
     </div>
     <div class="sizes" id="sizes"></div>
-    <p class="help">Arriba: píxeles en canvas; a 1× se ve la resolución nativa. Abajo: caracteres reales <code>▀</code>, con dos píxeles verticales por celda. A 6× las celdas miden 6 × 12 px: Small ocupa 4 filas y Tiny solo 3. Ambas vistas comparten estado y escala, ajustada al espacio disponible. La forma exacta del medio bloque depende de la fuente de la terminal.</p>
-    <footer class="footnote"><span>14 × 8 / 10 × 6 / 20 × 12 / 24 × 16 · transparencia real · color de 24 bits</span><span>Hecho píxel a píxel. Sin sonido.</span></footer>
-    <noscript><p>Activa JavaScript para ver la animación. También puedes abrir contact-sheet.png.</p></noscript>
+    <p class="help">Top: pixels on a canvas; at 1× you see the native resolution. Bottom: real <code>▀</code> characters, two vertical pixels per cell. At 6× a cell is 6 × 12 px: small takes 4 rows and tiny only 3. Both views share state and scale, fitted to the available space. The exact half-block shape depends on the terminal font.</p>
+    <footer class="footnote"><span>14 × 8 / 10 × 6 / 20 × 12 / 24 × 16 · true transparency · 24-bit color</span><span>Drawn pixel by pixel. No sound.</span></footer>
+    <noscript><p>Enable JavaScript to see the animation.</p></noscript>
   </main>
   <script id="sprite-data" type="application/json">
 {"palette":{"H":"#b6c0c6","G":"#87939e","g":"#576571","B":"#a77849","b":"#714c32","Y":"#f7cc32","y":"#ffe99a","U":"#dfa927","W":"#bd8826","S":"#895e24","O":"#ed8c36","o":"#a85e30","K":"#252b35","w":"#fff9dc","D":"#b7bbb8","E":"#d5d7cf","d":"#828b8e","s":"#59636c","x":"#303742","t":"#979184"},"sizes":{"normal":{"width":20,"height":12,"frames":{"idle":[".........HG.........","......HHH..GGG......","....HH........GG....","..HG.g....WWW...GG..",".G...g...WYyYYW.g.G.",".G...g...WYYwKYOg.G.",".G...g.WUWWYyyW.g.G.",".G...SWWSSWYyyW.g.G.",".G.SWg...WUYyW..g.G.",".GbBBBBBBBOBBOBBBbG.","GG...g..........g.GG",".gGGGGggggggggggggg."],"blink":[".........HG.........","......HHH..GGG......","....HH........GG....","..HG.g....WWW...GG..",".G...g...WYyYYW.g.G.",".G...g...WYYKKYOg.G.",".G...g.WUWWYyyW.g.G.",".G...SWWSSWYyyW.g.G.",".G.SWg...WUYyW..g.G.",".GbBBBBBBBOBBOBBBbG.","GG...g..........g.GG",".gGGGGggggggggggggg."],"chirp":[".........HG.........","......HHH..GGG......","....HH........GG....","..HG.g....WWW...GG..",".G...g...WYyYYWOg.G.",".G...g...WYYwKYKg.G.",".G...g.WUWWYyyWOg.G.",".G...SWWSSWYyyW.g.G.",".G.SWg...WUYyW..g.G.",".GbBBBBBBBOBBOBBBbG.","GG...g..........g.GG",".gGGGGggggggggggggg."],"hop":[".........HG.........","......HHH..GGG......","....HH....WWW.GG....","..HG.g...WYyYYW.GG..",".G...g...WYYwKYOg.G.",".G...g.WUWWYyyW.g.G.",".G...SWWSSWYyyW.g.G.",".G.SWg...WUYyW..g.G.",".G...g....o.o...g.G.",".GbBBBBBBBBBBBBBBbG.","GG...g..........g.GG",".gGGGGggggggggggggg."],"dead":[".........HG.........","......HHH..GGG......","....HH........GG....","..HG.g..........GG..",".GbBBBBBBBBBBBBBBbG.",".G...g..........g.G.",".G...g.o.o......g.G.",".G...g.o.o..dEd.g.G.",".G...dEEEEDExExDg.G.",".G.sdDdddDDDDxEDo.G.","GG..ssdDDDsDxExDg.GG",".gGGGGggggggggggggg."]}},"large":{"width":24,"height":16,"frames":{"idle":["...........HG...........","..........H..G..........","........HHHHGGGG........","......HH........GG......","....HH..g...WWWg..GG....","...H...g...WYyYYW...G...","..G....g...WYYwKYO...G..","..G....g..WYYyyYW....G..","..G....gWUWWYyyYW....G..","..G....SWWUWYyyWg....G..","..G..SWWSSWUYYW.g....G..","..G.SW.g...o..o.g....G..","..GbBBBBBBoOBoOBBBBBbG..","..G....g...g....g....G..",".GHHHHHHGGGGGGGGGGGGGGG.","..gggggggggggggggggggg.."],"blink":["...........HG...........","..........H..G..........","........HHHHGGGG........","......HH........GG......","....HH..g...WWWg..GG....","...H...g...WYyYYW...G...","..G....g...WYYKKYO...G..","..G....g..WYYyyYW....G..","..G....gWUWWYyyYW....G..","..G....SWWUWYyyWg....G..","..G..SWWSSWUYYW.g....G..","..G.SW.g...o..o.g....G..","..GbBBBBBBoOBoOBBBBBbG..","..G....g...g....g....G..",".GHHHHHHGGGGGGGGGGGGGGG.","..gggggggggggggggggggg.."],"chirp":["...........HG...........","..........H..G..........","........HHHHGGGG........","......HH........GG......","....HH..g...WWWg..GG....","...H...g...WYyYYWO..G...","..G....g...WYYwKYK...G..","..G....g..WYYyyYWO...G..","..G....gWUWWYyyYW....G..","..G....SWWUWYyyWg....G..","..G..SWWSSWUYYW.g....G..","..G.SW.g...o..o.g....G..","..GbBBBBBBoOBoOBBBBBbG..","..G....g...g....g....G..",".GHHHHHHGGGGGGGGGGGGGGG.","..gggggggggggggggggggg.."],"hop":["...........HG...........","..........H..G..........","........HHHHGGGG........","......HH....WWW.GG......","....HH..g..WYyYYW.GG....","...H...g...WYYwKYO..G...","..G....g..WYYyyYW....G..","..G....gWUWWYyyYW....G..","..G....SWWUWYyyWg....G..","..G..SWWSSWUYYW.g....G..","..G.SW.g..oO.oO.g....G..","..G....g...g....g....G..","..GbBBBBBBBBBBBBBBBBbG..","..G....g...g....g....G..",".GHHHHHHGGGGGGGGGGGGGGG.","..gggggggggggggggggggg.."],"dead":["...........HG...........","..........H..G..........","........HHHHGGGG........","......HH........GG......","....HH..g......g..GG....","...H...g...g....g...G...","..GbBBBBBBBBBBBBBBBBbG..","..G....g...g....g....G..","..G....go..o....g....G..","..G....go..o...dEd...G..","..G....dEEEEDDExExD..G..","..G.sdDDEdddDDDExEDo.G..","..G..sdDDdddDDExExD..G..","..G....sdDDDDdsddd...G..",".GHHHHHHGGGGGGGGGGGGGGG.","..gggggggggggggggggggg.."]}},"small":{"width":14,"height":8,"frames":{"idle":[".....HHGG.....","..HHH....GGG..",".H....WYY...G.","G.g...YwKYOg.G","G.g.WUYYyW.g.G","G.gSWWUyy..g.G","G.g...o.o..g.G","gHHHGGGGGGGGgg"],"blink":[".....HHGG.....","..HHH....GGG..",".H....WYY...G.","G.g...YKKYOg.G","G.g.WUYYyW.g.G","G.gSWWUyy..g.G","G.g...o.o..g.G","gHHHGGGGGGGGgg"],"chirp":[".....HHGG.....","..HHH....GGG..",".H....WYY.O.G.","G.g...YwKYKg.G","G.g.WUYYyWOg.G","G.gSWWUyy..g.G","G.g...o.o..g.G","gHHHGGGGGGGGgg"],"hop":[".....HHGG.....","..HHH.WYYGGG..",".H....YwKYO.G.","G.g.WUYYyW.g.G","G.gSWWUyy..g.G","G.g...o.o..g.G","G.g........g.G","gHHHGGGGGGGGgg"],"dead":[".....HHGG.....","..HHH....GGG..",".H..........G.","G.g..o.o...g.G","G.g..o.o...g.G","G.g.dEEEDxDg.G","G.gsdDddEDog.G","gHHHGGGGGGGGgg"]}},"tiny":{"width":10,"height":6,"frames":{"idle":["...HHGG...",".HH.WY.GG.","G..YwKO..G","G.WYyW...G","G..o.o...G","gHHGGGGGGg"],"blink":["...HHGG...",".HH.WY.GG.","G..YKKO..G","G.WYyW...G","G..o.o...G","gHHGGGGGGg"],"chirp":["...HHGG...",".HH.WYOGG.","G..YwKK..G","G.WYyWO..G","G..o.o...G","gHHGGGGGGg"],"hop":["...HHGG...",".HHYwKOGG.","G.WYyW...G","G..o.o...G","G........G","gHHGGGGGGg"],"dead":["...HHGG...",".HH....GG.","G..o.o...G","G..EEDxD.G","G.sdDDDo.G","gHHGGGGGGg"]}}}}
@@ -167,21 +167,21 @@
       const card = document.createElement("section");
       card.className = "size-card";
       card.setAttribute("aria-labelledby", name + "-title");
-      card.innerHTML = `<div class="card-head"><h2 id="${name}-title">${name[0].toUpperCase() + name.slice(1)}</h2><span class="dimensions">${size.width} × ${size.height} px / ${size.height / 2} filas</span></div><div class="pair pixels"></div><div class="terminal-head"><h3>Como en la terminal</h3><span>1 celda = 2 píxeles</span></div><div class="pair terminal"></div>`;
+      card.innerHTML = `<div class="card-head"><h2 id="${name}-title">${name[0].toUpperCase() + name.slice(1)}</h2><span class="dimensions">${size.width} × ${size.height} px / ${size.height / 2} rows</span></div><div class="pair pixels"></div><div class="terminal-head"><h3>As in the terminal</h3><span>1 cell = 2 pixels</span></div><div class="pair terminal"></div>`;
       const canvasViews = [], terminalViews = [];
       for (const dead of [false, true]) {
-        const label = dead ? "Instrucciones perdidas" : "Siguiendo instrucciones";
+        const label = dead ? "Instructions lost" : "Following instructions";
         for (const mode of ["pixels", "terminal"]) {
           const figure = document.createElement("figure");
           const stage = document.createElement("div");
           stage.className = "stage";
           const graphic = document.createElement(mode === "pixels" ? "canvas" : "div");
           graphic.setAttribute("role", "img");
-          graphic.setAttribute("aria-label", `${name}: ${label}, ${mode === "pixels" ? "píxeles" : "medios bloques"}`);
+          graphic.setAttribute("aria-label", `${name}: ${label}, ${mode === "pixels" ? "pixels" : "half blocks"}`);
           if (mode === "terminal") graphic.className = "terminal-screen";
           stage.append(graphic);
           const caption = document.createElement("figcaption");
-          caption.innerHTML = `<span class="dot${dead ? " dead" : ""}"></span>${dead ? "Muerto" : "Vivo"}`;
+          caption.innerHTML = `<span class="dot${dead ? " dead" : ""}"></span>${dead ? "Dead" : "Alive"}`;
           figure.append(stage, caption);
           card.querySelector("." + mode).append(figure);
           (mode === "pixels" ? canvasViews : terminalViews).push({ graphic, stage, caption, dead });
@@ -203,14 +203,14 @@
         for (const item of view.canvasViews) {
           const activeFrame = item.dead ? "dead" : frame;
           drawCanvas(item.graphic, view.size, activeFrame, pixelSize);
-          item.graphic.setAttribute("aria-label", `${view.name}, ${activeFrame}, píxeles`);
-          item.caption.innerHTML = `<span class="dot${activeFrame === "dead" ? " dead" : ""}"></span>${item.dead ? "Muerto" : activeFrame === "dead" ? "Muerto · inspección" : "Vivo"}`;
+          item.graphic.setAttribute("aria-label", `${view.name}, ${activeFrame}, pixels`);
+          item.caption.innerHTML = `<span class="dot${activeFrame === "dead" ? " dead" : ""}"></span>${item.dead ? "Dead" : activeFrame === "dead" ? "Dead · preview" : "Alive"}`;
         }
         for (const item of view.terminalViews) {
           const activeFrame = item.dead ? "dead" : frame;
           drawTerminal(item.graphic, view.size, activeFrame, pixelSize);
           item.graphic.setAttribute("aria-label", `${view.name}, ${activeFrame}, medios bloques`);
-          item.caption.innerHTML = `<span class="dot${activeFrame === "dead" ? " dead" : ""}"></span>${item.dead ? "Muerto" : activeFrame === "dead" ? "Muerto · inspección" : "Vivo"}`;
+          item.caption.innerHTML = `<span class="dot${activeFrame === "dead" ? " dead" : ""}"></span>${item.dead ? "Dead" : activeFrame === "dead" ? "Dead · preview" : "Alive"}`;
         }
       }
     }
@@ -227,7 +227,7 @@
       if (state.raf !== null) cancelAnimationFrame(state.raf);
       state.raf = null;
       state.lastTime = null;
-      pauseButton.textContent = state.paused ? "Reanudar" : "Pausar";
+      pauseButton.textContent = state.paused ? "Resume" : "Pause";
       pauseButton.setAttribute("aria-pressed", String(state.paused));
       pauseButton.disabled = state.pose !== "auto";
       render(true);

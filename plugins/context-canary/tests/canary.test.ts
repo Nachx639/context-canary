@@ -6,7 +6,7 @@ import { rasterCells, svgSource } from '../hooks/pixels.js'
 import { PALETTE, SPRITES } from '../hooks/sprites.js'
 
 type Canary = PluginState['context-canary']['canary']
-const BASE = { word: '🐤', language: 'en', autoCompact: true, cooldownMinutes: 30 }
+const BASE = { word: '🐤', language: 'en', autoCompact: true, cooldownMinutes: 30, size: 'normal' }
 const check = (name: string, body: TestBody, options: PluginOptions = {}) => test(name, { options: { ...BASE, ...options } }, body)
 const START = { surface: 'terminal', isInteractive: true, cwd: '/work' } as const
 const BAND = { plugin: 'context-canary', component: 'AbovePrompt', viewport: { columns: 100, rows: 30 },
@@ -92,6 +92,12 @@ test('manifest defaults work without options', async ($, on) => {
   expect((await $.command.run(cmd('status'))).text).toContain('Canary alive')
   await $.turn.complete(done('🐤 Ready'))
   expect(env.state().streak).toBe(1)
+  // Defaults: English, small sprite, only the bird.
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ key: 'canary-art' }))?.props.cells).toBe(cellsOf('idle', 'small'))
+  expect(await ui.find({ text: 'Canary alive' })).toBeUndefined()
+  await ui.unmount()
+  expect(configuration({})).toEqual({ word: '🐤', autoCompact: true, cooldownMinutes: 30, language: 'en', size: 'small', info: 'none' })
 })
 
 test('Unicode matching, formatted prefixes, boundaries and bounded excerpts', () => {

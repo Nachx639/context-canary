@@ -8,21 +8,14 @@ una palabra o emoji, `🐤` por defecto. El canario sigue vivo en su jaula anima
 mientras se cumple. Un fallo es una señal de alerta, no una prueba de pérdida de
 contexto; compactar tampoco garantiza que la siguiente respuesta cumpla la regla.
 
-> **Espacio para un GIF:** jaula viva → respuesta sin saludo → aviso de muerte →
-> compactación → «revivido tras compactar». Añadir la grabación antes de publicar.
-
 ## Instalación
 
-Cuando el repositorio esté publicado como `<owner>/context-canary`, sustituye
-`<owner>` por el propietario real de GitHub:
-
 ```sh
-claude plugin marketplace add <owner>/context-canary
+claude plugin marketplace add Nachx639/context-canary
 claude plugin install context-canary@context-canary
 ```
 
-Esta copia aún no está publicada y no tiene remoto. Para instalar desde una
-copia local:
+Para instalar desde una copia local:
 
 ```sh
 claude plugin marketplace add /ruta/absoluta/context-canary-repo
@@ -46,7 +39,7 @@ cambiar opciones si el host no ha recargado el módulo.
 | `autoCompact` | `true` | Compacta después de morir. En `false`, solo avisa. |
 | `cooldownMinutes` | `30` | Si vuelve a morir antes de ese tiempo tras una compactación automática correcta, bloquea la recuperación. De 0 a 10080; `0` desactiva la ventana. |
 | `language` | `en` | `en` o `es`. La API 2.1.293 no expone el locale de la interfaz, así que se elige por configuración. |
-| `size` | `normal` | Canario en pixel art: `tiny` (10×3 celdas), `small` (14×4), `normal` (20×6) o `large` (24×8). |
+| `size` | `small` | Canario en pixel art: `tiny` (10×3 celdas), `small` (14×4), `normal` (20×6) o `large` (24×8). |
 | `info` | `none` | Texto junto al canario: `none` (solo el pájaro), `status` («Canario vivo/muerto») o `details` (estado, racha, muerte y notas de recuperación). |
 
 Si cambias la palabra o el idioma de la regla, repite `/canary setup` para
@@ -183,7 +176,3 @@ plugins/context-canary/
 .github/workflows/test.yml
 README.md · README.es.md · CHANGELOG.md · LICENSE
 ```
-
-El propietario del manifest es el nombre neutro `Context Canary contributors`.
-Antes de publicar, pon el propietario real y sustituye `<owner>` en el ejemplo.
-No se presupone una cuenta ni un remoto de GitHub.

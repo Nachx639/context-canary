@@ -1,9 +1,10 @@
-# Context Canary 1.0.0
+# Context Canary 1.1.0
 
-An animated context canary for Claude Code **2.1.293**. MIT licensed.
+A pixel-art context canary for Claude Code **2.1.293**. MIT licensed.
 
-Use `/config` to choose `word` (default `🐤`), `language` (`en` or `es`),
-`autoCompact` (default on), and `cooldownMinutes` (default 30).
+Use `/config` to choose `word` (default `🐤`), `language` (`en` default, or `es`),
+`autoCompact` (default on), `cooldownMinutes` (default 30), `size` (`tiny`, `small` default,
+`normal`, `large`) and `info` (`none` default: only the bird; `status`; `details`).
 
 - `/canary setup`: asks before adding/updating the marked canary rule in your
   `~/.claude/CLAUDE.md`. Restart the session to read newly added instructions.
@@ -18,8 +19,9 @@ revives; skip/failure stays dead. A repeated death within the window locks
 recovery until `/clear` or a new session. Set `autoCompact` off for alerts only.
 This is a heuristic, not proof of lost context or a guarantee of recovery.
 
-No audio. Subagents, aborted turns and non-interactive runs are ignored. Terminal
-and Desktop use shared elements, with a one-line layout in small viewports.
+No audio. Subagents, aborted turns and non-interactive runs are ignored. The terminal
+draws a half-block `Raster`, Desktop an `Svg` of the same pixels, with a one-line layout
+when the sprite does not fit.
 The tests check render trees and stubbed compaction, not real app pixels or a
 live model. State survives module reloads, not process restarts.
 

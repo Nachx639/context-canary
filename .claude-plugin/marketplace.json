@@ -1,7 +1,8 @@
 {
   "name": "context-canary",
   "owner": {
-    "name": "Context Canary contributors"
+    "name": "Nachx639",
+    "url": "https://github.com/Nachx639"
   },
   "metadata": {
     "description": "A configurable context canary for Claude Code.",

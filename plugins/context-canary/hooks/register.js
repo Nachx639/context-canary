@@ -23,7 +23,7 @@ export function configuration(options = {}) {
     cooldownMinutes: typeof options.cooldownMinutes === 'number' && Number.isFinite(options.cooldownMinutes)
       ? Math.max(0, Math.min(10080, options.cooldownMinutes)) : 30,
     language: options.language === 'es' ? 'es' : 'en',
-    size: typeof options.size === 'string' && ['tiny', 'small', 'normal', 'large'].includes(options.size) ? /** @type {Config['size']} */ (options.size) : 'normal',
+    size: typeof options.size === 'string' && ['tiny', 'small', 'normal', 'large'].includes(options.size) ? /** @type {Config['size']} */ (options.size) : 'small',
     info: options.info === 'status' || options.info === 'details' ? options.info : 'none',
   }
 }

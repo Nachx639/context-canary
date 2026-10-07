@@ -8,20 +8,14 @@ small sentinel, `🐤` by default. A bird stays alive in its animated cage while
 that instruction is followed. A missing sentinel is a warning signal, not proof
 that context was lost; compaction does not guarantee the next answer will comply.
 
-> **GIF placeholder:** a live cage → a missing sentinel → a death toast →
-> compaction → “revived after compaction”. Add a recording here before publishing.
-
 ## Install
 
-Once this repository has been published as `<owner>/context-canary`, replace
-`<owner>` with the actual GitHub owner:
-
 ```sh
-claude plugin marketplace add <owner>/context-canary
+claude plugin marketplace add Nachx639/context-canary
 claude plugin install context-canary@context-canary
 ```
 
-This checkout has no remote and has not been published. For a local installation:
+To install from a local clone instead:
 
 ```sh
 claude plugin marketplace add /absolute/path/to/context-canary-repo
@@ -45,7 +39,7 @@ edits settings. Restart the session after changing options if it has not reloade
 | `autoCompact` | `true` | Compact after death. `false` means notifications only. |
 | `cooldownMinutes` | `30` | A second death **less than** this many minutes after successful automatic compaction locks recovery. Range 0–10080; `0` disables the window. |
 | `language` | `en` | `en` or `es`. 2.1.293 exposes no UI locale accessor, so language is explicit. |
-| `size` | `normal` | Pixel-art canary: `tiny` (10×3 cells), `small` (14×4), `normal` (20×6) or `large` (24×8). |
+| `size` | `small` | Pixel-art canary: `tiny` (10×3 cells), `small` (14×4), `normal` (20×6) or `large` (24×8). |
 | `info` | `none` | Text beside the canary: `none` (only the bird), `status` (“Canary alive/dead”) or `details` (status, streak, death and recovery notes). |
 
 After changing `word` or the rule's language, run `/canary setup` again to update
@@ -187,7 +181,3 @@ design/                             Pixel-art source, preview.html, render.py
 scripts/build-sprites.mjs           design/sprites.json → hooks/sprites.js
 README.md · README.es.md · CHANGELOG.md · LICENSE
 ```
-
-The marketplace owner is the neutral `Context Canary contributors`. Set the
-actual owner and replace `<owner>` in the installation example when publishing;
-no GitHub username or remote repository is assumed here.

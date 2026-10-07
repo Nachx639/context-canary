@@ -3,7 +3,8 @@
   "version": "1.1.0",
   "description": "Development test entry for the Context Canary marketplace; installs use plugins/context-canary.",
   "author": {
-    "name": "Context Canary contributors"
+    "name": "Nachx639",
+    "url": "https://github.com/Nachx639"
   },
   "license": "MIT",
   "types": "./plugins/context-canary/types/index.d.ts",
@@ -42,7 +43,7 @@
       "type": "string",
       "title": "Canary size",
       "description": "tiny (3 terminal rows), small (4), normal (6) or large (8).",
-      "default": "normal",
+      "default": "small",
       "options": [
         "tiny",
         "small",
@@ -61,5 +62,15 @@
         "details"
       ]
     }
-  }
+  },
+  "homepage": "https://github.com/Nachx639/context-canary",
+  "repository": "https://github.com/Nachx639/context-canary",
+  "keywords": [
+    "canary",
+    "context",
+    "claude-code",
+    "mod",
+    "pixel-art",
+    "compaction"
+  ]
 }
