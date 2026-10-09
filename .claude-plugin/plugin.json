@@ -1,7 +1,7 @@
 {
   "name": "context-canary",
   "displayName": "Context Canary",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Development test entry for the Context Canary marketplace; installs use plugins/context-canary.",
   "author": {
     "name": "Nachx639",
@@ -70,6 +70,16 @@
       "default": 0,
       "min": 0,
       "max": 5
+    },
+    "target": {
+      "type": "string",
+      "title": "Instruction file",
+      "description": "global: ~/.claude/CLAUDE.md (default). project: the CLAUDE.md at the root of the project you run /canary setup in. Checkpoints from both files are always checked.",
+      "default": "global",
+      "options": [
+        "global",
+        "project"
+      ]
     }
   },
   "homepage": "https://github.com/Nachx639/context-canary",

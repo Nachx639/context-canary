@@ -19,7 +19,7 @@ export function pickCodes(count, random = Math.random) {
   return codes
 }
 
-/** @typedef {{ n: number, code: string, heading: string }} Checkpoint */
+/** @typedef {{ n: number, code: string, heading: string, where?: 'project' }} Checkpoint */
 
 /**
  * Place `codes.length` checkpoint lines at even fractions of the file (25 %, 50 %, 75 % for three), each one just
@@ -67,6 +67,24 @@ export function placeCheckpoints(text, codes, newline = '\n') {
     checkpoints.push({ n, code, heading: '' })
   }
   return { text: out.join(newline), checkpoints }
+}
+
+/**
+ * The checkpoints already in a file, read back the way placeCheckpoints wrote them, so the file stays the only
+ * source of truth: each session checks against what Claude actually read, in every project.
+ * @param {string} text @returns {Checkpoint[]}
+ */
+export function readCheckpoints(text) {
+  const lines = text.split(/\r?\n/)
+  /** @type {Checkpoint[]} */
+  const found = []
+  lines.forEach((line, i) => {
+    const match = CHECKPOINT.exec(line)
+    if (!match) return
+    const after = lines.slice(i + 1).find((l) => l.trim() && !CHECKPOINT.test(l)) ?? ''
+    found.push({ n: Number(match[1]), code: match[3] ?? '', heading: /^#{1,6}\s/.test(after) ? after.replace(/^#+\s*/, '').trim() : '' })
+  })
+  return found
 }
 
 /** @param {string} text */

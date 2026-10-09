@@ -3,7 +3,7 @@
 **A pixel-art canary that dies when Claude Code forgets your instructions —
 then auto-compacts and brings it back to life.**
 
-[Español](README.es.md) · MIT · a Claude Code mod · **Tested with Claude Code 2.1.293**
+[Español](README.es.md) · [中文](README.zh.md) · MIT · a Claude Code mod · **Tested with Claude Code 2.1.293**
 
 <p align="center"><img src="media/demo.gif" alt="The canary lives while every answer starts with 🐤; a reply without it kills the canary, the session compacts automatically and the canary comes back to life" width="800"></p>
 
@@ -39,6 +39,24 @@ so a reply can only carry them if those parts of the file are still in context.
 When one is missing, the canary dies and names it: *missing checkpoint 2 (before
 "Testing")*. `/canary remove` takes the rule and every checkpoint out.
 
+The words are read back from the files each time a session starts, so the canary
+checks exactly what Claude was given, in every project.
+
+## Your project's CLAUDE.md too
+
+Set `target` to `project` and `/canary setup` writes the rule (and checkpoints)
+to the `CLAUDE.md` at the root of the current project instead of
+`~/.claude/CLAUDE.md`. Checkpoints in both files are always checked; a lost one
+from the project file says so.
+
+## Death log
+
+`/canary log` lists the last deaths, newest first: when, in which project, on
+which reply, how it ended (revived after compaction, revived by hand, locked,
+stayed dead), the checkpoints that were missing and how the reply started. The
+log keeps the last 30 deaths in the plugin's own store, across sessions, so you
+can tell a one-off slip from a project whose instructions keep falling out.
+
 ## Install
 
 ```sh
@@ -54,7 +72,8 @@ claude plugin install context-canary@context-canary
 ```
 
 In a new interactive session, run `/canary setup`. It shows the exact rule and
-asks for consent before updating `~/.claude/CLAUDE.md`. No file is changed on
+asks for consent before updating `~/.claude/CLAUDE.md` (or the project's
+`CLAUDE.md` with `target: project`). No file is changed on
 plugin load. If the rule was added during an existing session, start a new one
 so Claude Code reads it. Avoid enabling two copies of the canary simultaneously.
 
@@ -73,6 +92,7 @@ edits settings. Restart the session after changing options if it has not reloade
 | `size` | `small` | Pixel-art canary: `tiny` (10×3 cells), `small` (14×4), `normal` (20×6) or `large` (24×8). |
 | `info` | `none` | Text beside the canary: `none` (only the bird), `status` (“Canary alive/dead”) or `details` (status, streak, death and recovery notes). |
 | `checkpoints` | `0` | 1–5 spreads code words through `CLAUDE.md` with `/canary setup`; every answer must carry them, so the canary samples the whole file and names the part that was lost. |
+| `target` | `global` | Which file `/canary setup` and `/canary remove` edit: `global` (`~/.claude/CLAUDE.md`) or `project` (`CLAUDE.md` at the project root). |
 
 After changing `word` or the rule's language, run `/canary setup` again to update
 the managed rule. Matching ignores case and accents, allows bold, quotes,
@@ -93,12 +113,13 @@ JSON
 | --- | --- |
 | `/canary` | Show the previous status, then revive and reset the counters. |
 | `/canary status` | Show health, sentinel, counters and recovery note without changing state. |
+| `/canary log` | Last deaths across sessions: when, project, reply, outcome and missing checkpoints. |
 | `/canary revive` | Revive/reset counters. Retains the cooldown timestamp and any recovery lock. |
 | `/canary setup` | Confirm adding/updating the marked rule in the user's `CLAUDE.md`. |
 | `/canary remove` | Confirm removing only that marked block. |
 
 `/canario` is an alias. Subcommands also accept `estado`, `revivir`, `configurar`
-and `quitar`; `init`, `reset` and `uninstall` are aliases for setup, revive and
+and `quitar`, `historial`; `init`, `reset`, `history` and `uninstall` are aliases for setup, revive and
 remove. `remove`/`uninstall` here remove the instruction block, not the plugin.
 
 The managed block uses `<!-- context-canary:start -->` and
@@ -147,8 +168,9 @@ Health/history and cooldown live in host `$.state`, surviving module reloads,
 but not process restarts. Claude Code resets that state on `/clear`, `/resume`
 and `/branch`. A reload during recovery leaves the bird dead with an interrupted
 note rather than replaying a possibly completed operation. No background file,
-network or process calls are made by the mod; only explicit setup/remove uses
-the file API. The host's compaction is the operation that can call a model.
+network or process calls are made by the mod. At session start it reads the two
+instruction files for their checkpoints; only explicit setup/remove writes one.
+The death log lives in the plugin's own store (`$.store`). The host's compaction is the operation that can call a model.
 
 ## Develop and test
 
@@ -177,9 +199,8 @@ event stub; the kit skips it and the underlying test host rejects the call.
 
 The workflow uses Anthropic's [official native installer](https://code.claude.com/docs/en/setup#install-a-specific-version),
 pinned to **2.1.293**, and runs validation/tests at both levels. No model API key
-is needed for stubbed tests. The workflow has not been run on GitHub; neither
-real model compaction nor actual terminal/Desktop pixels have been exercised
-by the test suite. A local test tree is not a screenshot test.
+is needed for stubbed tests. Neither real model compaction nor actual
+terminal/Desktop pixels are exercised by the test suite. A local test tree is not a screenshot test.
 
 Local generated API types are excluded from Git. Where those 2.1.293 types and
 TypeScript already exist, additionally run:
@@ -202,8 +223,8 @@ precedence over a newer or older website.
 .claude-plugin/plugin.json          Root development test entry
 hooks/hooks.json                    Loads the shipped module for root tests
 plugins/context-canary/
-  .claude-plugin/plugin.json        Plugin manifest, 1.1.0 and userConfig
-  hooks/{hooks.json,register.js,i18n.js,pixels.js}
+  .claude-plugin/plugin.json        Plugin manifest, 1.3.0 and userConfig
+  hooks/{hooks.json,register.js,i18n.js,pixels.js,checkpoints.js}
   hooks/sprites.js                 Generated from design/sprites.json
 
   types/index.d.ts                 Host state contract
@@ -213,5 +234,5 @@ design/                             Pixel-art source, preview.html, render.py
 scripts/build-sprites.mjs           design/sprites.json → hooks/sprites.js
 scripts/demo/                       Demo video and soundtrack generators
 media/                              Demo GIF, video and social preview
-README.md · README.es.md · CHANGELOG.md · LICENSE
+README.md · README.es.md · README.zh.md · CHANGELOG.md · LICENSE
 ```

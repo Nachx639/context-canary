@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0 — 2026-10-09
+
+- `target` (`global` or `project`): `/canary setup` and `/canary remove` can edit the project's `CLAUDE.md`.
+- Checkpoints are read back from both instruction files at session start, so every session and project checks
+  the words Claude was given; a lost one from the project file says so.
+- `/canary log` (`historial`, `history`): the last 30 deaths across sessions with project, reply, outcome and
+  missing checkpoints.
+- Chinese README.
+
 ## 1.2.0 — 2026-10-07
 
 - `checkpoints` (0–5): `/canary setup` spreads code words through `CLAUDE.md` and puts the rule last; every

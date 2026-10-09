@@ -7,7 +7,7 @@ compacta solo la conversación y vuelve a la vida.**
 
 <p align="center"><a href="media/context-canary-demo.mp4">▶ Ver la demo de 21 segundos con sonido</a></p>
 
-[English](README.md) · MIT · **Probado con Claude Code 2.1.293**
+[English](README.md) · [中文](README.zh.md) · MIT · **Probado con Claude Code 2.1.293**
 
 En una conversación larga, el asistente puede dejar de seguir una instrucción
 anterior. Este mod hace visible una de ellas: empezar cada respuesta final por
@@ -25,6 +25,25 @@ debe empezar entonces por `🐤 comet maple river`. La regla nunca incluye las
 palabras, así que una respuesta solo puede llevarlas si esas partes siguen en el
 contexto. Si falta una, el canario muere y dice cuál: *le faltaba el punto de
 control 2 (antes de «Testing»)*. `/canary remove` quita la regla y los puntos.
+
+Las palabras se leen de los archivos cada vez que empieza una sesión, así que el
+canario comprueba exactamente lo que recibió Claude, en cualquier proyecto.
+
+## También el CLAUDE.md de tu proyecto
+
+Con `target` en `project`, `/canary setup` escribe la regla (y los puntos de
+control) en el `CLAUDE.md` de la raíz del proyecto actual en vez de en
+`~/.claude/CLAUDE.md`. Siempre se comprueban los puntos de los dos archivos; si
+se pierde uno del proyecto, el aviso lo dice.
+
+## Historial de muertes
+
+`/canary log` lista las últimas muertes, de la más reciente a la más antigua:
+cuándo, en qué proyecto, en qué respuesta, cómo acabó (revivió al compactar,
+revivido a mano, sesión bloqueada o siguió muerto), qué puntos de control
+faltaban y cómo empezaba la respuesta. Guarda las 30 últimas en el almacén del
+propio plugin, entre sesiones, para distinguir un despiste suelto de un proyecto
+cuyas instrucciones se caen una y otra vez.
 
 ## Instalación
 
@@ -60,6 +79,7 @@ cambiar opciones si el host no ha recargado el módulo.
 | `size` | `small` | Canario en pixel art: `tiny` (10×3 celdas), `small` (14×4), `normal` (20×6) o `large` (24×8). |
 | `info` | `none` | Texto junto al canario: `none` (solo el pájaro), `status` («Canario vivo/muerto») o `details` (estado, racha, muerte y notas de recuperación). |
 | `checkpoints` | `0` | De 1 a 5 reparte palabras clave por `CLAUDE.md` con `/canary setup`; cada respuesta debe llevarlas, así el canario vigila todo el archivo y dice qué parte se perdió. |
+| `target` | `global` | Qué archivo editan `/canary setup` y `/canary remove`: `global` (`~/.claude/CLAUDE.md`) o `project` (`CLAUDE.md` en la raíz del proyecto). |
 
 Si cambias la palabra o el idioma de la regla, repite `/canary setup` para
 actualizar el bloque. Se aceptan negrita, comillas, signos y emojis delante;
@@ -80,12 +100,13 @@ JSON
 | --- | --- |
 | `/canary` | Muestra el estado anterior y revive, poniendo los contadores a cero. |
 | `/canary status` | Consulta sin modificar el estado. |
+| `/canary log` | Últimas muertes entre sesiones: cuándo, proyecto, respuesta, desenlace y puntos que faltaban. |
 | `/canary revive` | Revive; conserva la fecha de recuperación y el bloqueo anti-bucle. |
 | `/canary setup` | Pide permiso para añadir/actualizar la regla del usuario. |
 | `/canary remove` | Pide permiso para quitar únicamente el bloque delimitado. |
 
 `/canario` es un alias. También se admiten `estado`, `revivir`, `configurar` y
-`quitar`, además de `init`, `reset` y `uninstall`. Aquí `remove` y `uninstall`
+`quitar` e `historial`, además de `init`, `reset`, `history` y `uninstall`. Aquí `remove` y `uninstall`
 quitan la regla, no desinstalan el plugin.
 
 El bloque usa `<!-- context-canary:start -->` y `<!-- context-canary:end -->`.
@@ -134,8 +155,9 @@ El historial y la ventana se guardan en `$.state`: sobreviven a la recarga del
 módulo, no a reiniciar el proceso. El host reinicia ese estado con `/clear`,
 `/resume` y `/branch`. Si se recarga durante la recuperación, queda muerto con
 una nota de interrupción en vez de repetir una operación de resultado incierto.
-El mod no hace llamadas de fichero, red ni procesos en segundo plano; solo
-setup/remove usan las APIs de fichero. La compactación del host sí puede llamar al modelo.
+El mod no hace llamadas de red ni procesos en segundo plano. Al empezar la sesión
+lee los dos archivos de instrucciones para sus puntos de control; solo setup/remove
+escriben. El historial de muertes va en el almacén propio del plugin (`$.store`). La compactación del host sí puede llamar al modelo.
 
 ## Pruebas
 
@@ -164,8 +186,7 @@ No ejecuta setup sobre el archivo real del desarrollador.
 
 El workflow utiliza el [instalador nativo oficial](https://code.claude.com/docs/en/setup#install-a-specific-version)
 con la versión **2.1.293** fijada y ejecuta validación/tests en ambos niveles.
-Las pruebas con stubs no necesitan clave del modelo. El workflow no se ha
-ejecutado en GitHub; no se ha probado una compactación real ni los píxeles de
+Las pruebas con stubs no necesitan clave del modelo. La suite no prueba una compactación real ni los píxeles de
 una sesión real de terminal/Desktop.
 
 Los tipos generados locales están excluidos de Git. Con esos tipos de 2.1.293
@@ -188,10 +209,11 @@ Para esta implementación mandan los tipos locales de **2.1.293**.
 .claude-plugin/plugin.json          Entrada de desarrollo para tests en raíz
 hooks/hooks.json                    Carga el módulo del plugin
 plugins/context-canary/
-  .claude-plugin/plugin.json        Versión 1.0.0 y userConfig
-  hooks/{hooks.json,register.js,i18n.js}
+  .claude-plugin/plugin.json        Versión 1.3.0 y userConfig
+  hooks/{hooks.json,register.js,i18n.js,pixels.js,checkpoints.js}
+  hooks/sprites.js                 Generado desde design/sprites.json
   types/index.d.ts                 Contrato del estado
   tests/canary.test.ts
 .github/workflows/test.yml
-README.md · README.es.md · CHANGELOG.md · LICENSE
+README.md · README.es.md · README.zh.md · CHANGELOG.md · LICENSE
 ```

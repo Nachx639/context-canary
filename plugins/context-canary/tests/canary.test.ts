@@ -4,7 +4,7 @@ import { configuration, excerpt, isAlive } from '../hooks/register.js'
 import { translations } from '../hooks/i18n.js'
 import { rasterCells, svgSource } from '../hooks/pixels.js'
 import { PALETTE, SPRITES } from '../hooks/sprites.js'
-import { CHECKPOINT, missingCheckpoints, pickCodes, placeCheckpoints } from '../hooks/checkpoints.js'
+import { CHECKPOINT, missingCheckpoints, pickCodes, placeCheckpoints, readCheckpoints } from '../hooks/checkpoints.js'
 
 type Canary = PluginState['context-canary']['canary']
 const BASE = { word: '🐤', language: 'en', autoCompact: true, cooldownMinutes: 30, size: 'normal' }
@@ -98,7 +98,7 @@ test('manifest defaults work without options', async ($, on) => {
   expect((await ui.find({ key: 'canary-art' }))?.props.cells).toBe(cellsOf('idle', 'small'))
   expect(await ui.find({ text: 'Canary alive' })).toBeUndefined()
   await ui.unmount()
-  expect(configuration({})).toEqual({ word: '🐤', autoCompact: true, cooldownMinutes: 30, language: 'en', size: 'small', info: 'none', checkpoints: 0 })
+  expect(configuration({})).toEqual({ word: '🐤', autoCompact: true, cooldownMinutes: 30, language: 'en', size: 'small', info: 'none', checkpoints: 0, target: 'global' })
 })
 
 test('Unicode matching, formatted prefixes, boundaries and bounded excerpts', () => {
@@ -253,7 +253,8 @@ check('setup asks before writing, is idempotent, remove only removes marked cont
   expect(env.asked.length).toBe(2)
   expect((await $.command.run(cmd('remove'))).text).toContain('No managed canary block')
   expect(env.fileWrites.length).toBe(2)
-  expect(env.paths.every(p => p === '/mock-user/.claude/CLAUDE.md')).toBe(true)
+  // The project CLAUDE.md is only read, for its checkpoints; every change goes to the global file.
+  expect(env.paths.every(p => p === '/mock-user/.claude/CLAUDE.md' || p === '/work/CLAUDE.md')).toBe(true)
 })
 
 check('setup creates a missing file with consent and updates an old marked rule', async ($, on) => {
@@ -632,9 +633,6 @@ test('missingCheckpoints reads only the first line and whole words', () => {
 
 check('setup with checkpoints spreads them, puts the rule last, and the canary dies naming the lost part', async ($, on) => {
   const env = setup(on, { file: '# Me\nI like tea.\n## Style\nShort.\n## Testing\nAlways test.\n## Git\nSmall commits.\n' })
-  const saved: unknown[] = []
-  on('store.get', () => ({ value: undefined }))
-  on('store.set', ($, e) => { saved.push(e.value); return { value: undefined } })
   await $.session.start(START)
   expect((await $.command.run(cmd('setup'))).text).toMatch(/saved/)
   const file = env.file()!
@@ -646,7 +644,7 @@ check('setup with checkpoints spreads them, puts the rule last, and the canary d
   const rule = file.slice(file.indexOf('<!-- context-canary:start -->'))
   for (const c of codes) expect(rule.includes(c)).toBe(false)
   expect(env.asked[0]).toMatch(/3 checkpoints will be spread/)
-  expect(saved.at(-1)).toHaveLength(3)
+  expect(readCheckpoints(file).map((c) => c.code)).toEqual(codes)
   // A second setup with the same count changes nothing.
   expect((await $.command.run(cmd('setup'))).text).toMatch(/already present/)
   // All words: alive. One missing: dead, naming the checkpoint and its section.
@@ -659,3 +657,61 @@ check('setup with checkpoints spreads them, puts the rule last, and the canary d
   expect((await $.command.run(cmd('remove'))).text).toMatch(/removed/)
   expect(env.file()!.split('\n').some((l) => CHECKPOINT.test(l) || l.includes('context-canary:'))).toBe(false)
 }, { checkpoints: 3, autoCompact: false })
+
+test('readCheckpoints reads back what placeCheckpoints wrote', () => {
+  const { text, checkpoints } = placeCheckpoints('# Me\na\n## Style\nb\n## Git\nc', ['maple', 'river'])
+  expect(readCheckpoints(text)).toEqual(checkpoints)
+  expect(readCheckpoints('no checkpoints here')).toEqual([])
+})
+
+check('checkpoints are read from the files at session start, in every session', async ($, on) => {
+  const { text } = placeCheckpoints('# Me\na\n## Style\nb\n## Git\nc', ['maple', 'river'])
+  const env = setup(on, { file: text })
+  await $.session.start(START)
+  await $.turn.complete(done('🐤 maple river\nDone.'))
+  expect(env.state().alive).toBe(true)
+  await $.turn.complete(done('🐤 maple\nDone.'))
+  expect(env.state()).toMatchObject({ alive: false, death: { lost: [{ n: 2, heading: 'Git' }] } })
+})
+
+check('target project writes the project CLAUDE.md', async ($, on) => {
+  const env = setup(on, { file: '# Project\nRules.\n' })
+  on('session.root', () => ({ value: '/work/repo' }))
+  await $.session.start(START)
+  expect((await $.command.run(cmd('setup'))).text).toContain('/work/repo/CLAUDE.md')
+  expect(env.paths.at(-1)).toBe('/work/repo/CLAUDE.md')
+  expect(env.file()).toContain('<!-- context-canary:start -->')
+}, { target: 'project' })
+
+check('/canary log records each death, its project and how it ended', async ($, on) => {
+  const env = setup(on)
+  let log: unknown = undefined
+  on('store.get', ($, e) => ({ value: e.key === 'deaths' ? log : undefined }))
+  on('store.set', ($, e) => { if (e.key === 'deaths') log = e.value; return { value: undefined } })
+  on('session.root', () => ({ value: '/work/my-app' }))
+  await $.session.start(START)
+  expect((await $.command.run(cmd('log'))).text).toBe('The canary has not died yet.')
+  await $.turn.complete(done('forgot the bird'))
+  await env.clock.advance(100)
+  expect(env.state().alive).toBe(true)
+  await env.clock.advance(2 * 3_600_000)
+  const text = (await $.command.run(cmd('log'))).text!
+  expect(text).toMatch(/^1 deaths · 1 revived by compaction · 0 revived by hand · 0 sessions locked/)
+  expect(text).toContain('2 h ago · my-app · reply 1 · revived after compaction')
+  expect(text).toContain('Starts: forgot the bird')
+  // The newest death comes first; until compaction ends it reads as dead.
+  await $.turn.complete(done('forgot again'))
+  expect((await $.command.run(cmd('log'))).text).toMatch(/2 deaths[\s\S]*reply 2 · stayed dead/)
+}, { cooldownMinutes: 0 })
+
+check('a manual revive is logged as revived by hand', async ($, on) => {
+  const env = setup(on)
+  let log: unknown = undefined
+  on('store.get', () => ({ value: log }))
+  on('store.set', ($, e) => { log = e.value; return { value: undefined } })
+  await $.session.start(START)
+  await $.turn.complete(done('no bird'))
+  await $.command.run(cmd('revive'))
+  expect((log as { outcome: string }[]).at(-1)!.outcome).toBe('revived')
+  expect(env.state().alive).toBe(true)
+}, { autoCompact: false })

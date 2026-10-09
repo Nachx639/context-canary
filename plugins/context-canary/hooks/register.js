@@ -2,12 +2,13 @@ import { atom, read, update } from 'claude-code'
 import { translate } from './i18n.js'
 import { rasterCells, svgSource } from './pixels.js'
 import { PALETTE, SPRITES } from './sprites.js'
-import { CHECKPOINT, missingCheckpoints, pickCodes, placeCheckpoints } from './checkpoints.js'
+import { CHECKPOINT, missingCheckpoints, pickCodes, placeCheckpoints, readCheckpoints } from './checkpoints.js'
 
 /** @typedef {import('claude-code').PluginState['context-canary']['canary']} Canary */
-/** @typedef {{ word: string, autoCompact: boolean, cooldownMinutes: number, language: 'en'|'es', size: 'tiny'|'small'|'normal'|'large', info: 'none'|'status'|'details', checkpoints: number }} Config */
+/** @typedef {{ word: string, autoCompact: boolean, cooldownMinutes: number, language: 'en'|'es', size: 'tiny'|'small'|'normal'|'large', info: 'none'|'status'|'details', checkpoints: number, target: 'global'|'project' }} Config */
 /** @typedef {import('./checkpoints.js').Checkpoint} Checkpoint */
-/** @typedef {{ checkpoints: Checkpoint[], interactive: boolean, activeTurn: string|null, timer: import('claude-code').Timer|null, recoveryTimer: import('claude-code').Timer|null, epoch: number, inFlight: boolean, beat: number, pose: string }} Runtime */
+/** @typedef {{ at: number, project: string, response: number, preview: string, turnId: string, lost?: { n: number, heading: string }[], outcome: string }} Death */
+/** @typedef {{ checkpoints: Checkpoint[], cwd: string, interactive: boolean, activeTurn: string|null, timer: import('claude-code').Timer|null, recoveryTimer: import('claude-code').Timer|null, epoch: number, inFlight: boolean, beat: number, pose: string }} Runtime */
 
 /** @returns {Canary} */
 const fresh = () => ({ alive: true, responses: 0, streak: 0, lastTurnId: null, death: null,
@@ -15,6 +16,9 @@ const fresh = () => ({ alive: true, responses: 0, streak: 0, lastTurnId: null, d
 const canary = atom({ plugin: 'context-canary', key: 'canary' }, fresh())
 const BEGIN = '<!-- context-canary:start -->'
 const END = '<!-- context-canary:end -->'
+const LOG_SIZE = 30
+/** How each death ended, for /canary log; anything else (still dead, skipped, failed) reads as dead. */
+const OUTCOMES = /** @type {const} */ ({ recovered: 'outcomeRecovered', revived: 'outcomeRevived', blocked: 'outcomeBlocked' })
 
 /** @param {import('claude-code').PluginOptions} options @returns {Config} */
 export function configuration(options = {}) {
@@ -29,6 +33,7 @@ export function configuration(options = {}) {
     info: options.info === 'status' || options.info === 'details' ? options.info : 'none',
     checkpoints: typeof options.checkpoints === 'number' && Number.isFinite(options.checkpoints)
       ? Math.max(0, Math.min(5, Math.round(options.checkpoints))) : 0,
+    target: options.target === 'project' ? 'project' : 'global',
   }
 }
 
@@ -71,9 +76,13 @@ function note(config, state) {
   return state.recovery === 'idle' ? '' : t(config, state.recovery, { reason: state.detail })
 }
 
-/** @param {Config} config @param {{ n: number, heading: string }[]} lost */
+/** @param {Config} config @param {{ n: number, heading: string, where?: 'project' }} c */
+const checkpointItem = (config, c) => t(config, 'checkpointItem', { n: c.n, heading: c.heading || t(config, 'noHeading') }) +
+  (c.where === 'project' ? t(config, 'inProject') : '')
+
+/** @param {Config} config @param {{ n: number, heading: string, where?: 'project' }[]} lost */
 function lostList(config, lost) {
-  return lost.map((c) => t(config, 'checkpointItem', { n: c.n, heading: c.heading || t(config, 'noHeading') })).join(', ')
+  return lost.map((c) => checkpointItem(config, c)).join(', ')
 }
 
 /** @param {Config} config @param {Canary} state */
@@ -127,6 +136,7 @@ async function recovered($, runtime, config, automatic) {
   if (!changed) return
   cancelRecovery(runtime)
   startClock($, runtime, true)
+  await logOutcome($, 'recovered')
   $.ui.toast(t(config, 'recovered'), { timeoutMs: 8000 })
 }
 
@@ -152,6 +162,7 @@ function scheduleRecovery($, runtime, config) {
       if (result.skip !== undefined) {
         const detail = excerpt(result.skip)
         await update($, canary, /** @returns {Canary} */ (s) => ({ ...s, recovery: 'skipped', detail }))
+        await logOutcome($, 'skipped')
         $.ui.toast(t(config, 'skipped', { reason: detail }), { timeoutMs: 8000 })
       } else {
         await recovered($, runtime, config, true)
@@ -160,6 +171,7 @@ function scheduleRecovery($, runtime, config) {
       if (runtime.epoch !== epoch || !runtime.interactive) return
       const detail = excerpt(String(error))
       await update($, canary, /** @returns {Canary} */ (s) => ({ ...s, recovery: 'failed', detail }))
+      await logOutcome($, 'failed')
       $.ui.toast(t(config, 'failed', { reason: detail }), { timeoutMs: 8000 })
     } finally {
       runtime.inFlight = false
@@ -177,12 +189,95 @@ function blockRange(text) {
   return { start, end: end + END.length }
 }
 
+/** @param {import('claude-code').EngineInterface} $ @param {Runtime} runtime */
+async function projectRoot($, runtime) {
+  try { return (await $.session.root()) || runtime.cwd } catch { return runtime.cwd }
+}
+
+/** @param {string} path */
+const basename = (path) => path.replace(/[\\/]+$/, '').split(/[\\/]/).pop() || path
+
+/**
+ * The instruction files the canary reads: the global one, and the project's own CLAUDE.md.
+ * @param {import('claude-code').EngineInterface} $ @param {Runtime} runtime
+ * @returns {Promise<{ global: string|null, project: string|null }>}
+ */
+async function instructionPaths($, runtime) {
+  const homeDirectory = (await $.env.get('HOME')) || (await $.env.get('USERPROFILE'))
+  const absolute = (/** @type {string|undefined} */ path) => !!path && /^(\/|[a-z]:[\\/])/i.test(path)
+  const root = await projectRoot($, runtime)
+  return {
+    global: homeDirectory && absolute(homeDirectory) ? homeDirectory.replace(/[\\/]$/, '') + '/.claude/CLAUDE.md' : null,
+    project: absolute(root) ? root.replace(/[\\/]$/, '') + '/CLAUDE.md' : null,
+  }
+}
+
+// Checkpoints come from the files themselves, so a session in any project checks the words Claude was given.
+/** @param {import('claude-code').EngineInterface} $ @param {Runtime} runtime */
+async function loadCheckpoints($, runtime) {
+  /** @type {Checkpoint[]} */
+  const all = []
+  try {
+    const paths = await instructionPaths($, runtime)
+    const seen = new Set()
+    for (const [where, path] of /** @type {const} */ ([['global', paths.global], ['project', paths.project]])) {
+      if (!path || seen.has(path)) continue
+      seen.add(path)
+      if (!(await $.fs.exists(path))) continue
+      for (const c of readCheckpoints(await $.fs.read(path))) {
+        if (!all.some((x) => x.code === c.code)) all.push(where === 'project' ? { ...c, where } : c)
+      }
+    }
+  } catch {}
+  runtime.checkpoints = all
+}
+
+/** @param {import('claude-code').EngineInterface} $ @returns {Promise<Death[]>} */
+async function readLog($) {
+  try {
+    const log = await $.store.get('deaths')
+    return Array.isArray(log) ? log : []
+  } catch { return [] }
+}
+
+/** @param {import('claude-code').EngineInterface} $ @param {(log: Death[]) => Death[]} change */
+async function writeLog($, change) {
+  try { await $.store.set('deaths', change(await readLog($)).slice(-LOG_SIZE)) } catch {}
+}
+
+/** Record how the latest death ended. @param {import('claude-code').EngineInterface} $ @param {string} outcome */
+const logOutcome = ($, outcome) => writeLog($, (log) => {
+  const last = log[log.length - 1]
+  return last ? [...log.slice(0, -1), { ...last, outcome }] : log
+})
+
+/** @param {Config} config @param {number} ms */
+function ago(config, ms) {
+  const minutes = Math.max(0, Math.floor(ms / 60_000))
+  if (minutes < 60) return t(config, 'agoMinutes', { n: minutes })
+  if (minutes < 48 * 60) return t(config, 'agoHours', { n: Math.floor(minutes / 60) })
+  return t(config, 'agoDays', { n: Math.floor(minutes / 1440) })
+}
+
+/** @param {import('claude-code').EngineInterface} $ @param {Config} config */
+async function deathLog($, config) {
+  const log = await readLog($)
+  if (!log.length) return t(config, 'logEmpty')
+  const now = await $.clock.now()
+  const count = (/** @type {string} */ outcome) => log.filter((d) => d.outcome === outcome).length
+  const lines = log.slice(-10).reverse().map((d) => t(config, 'logLine', { ago: ago(config, now - d.at), project: d.project,
+    response: d.response, outcome: t(config, OUTCOMES[/** @type {keyof typeof OUTCOMES} */ (d.outcome)] ?? 'outcomeDead') }) +
+    (d.lost?.length ? '\n  ' + t(config, 'logLost', { list: lostList(config, d.lost) }) : '') +
+    '\n  ' + t(config, 'preview', { preview: d.preview }))
+  return t(config, 'logSummary', { total: log.length, recovered: count('recovered'), revived: count('revived'), blocked: count('blocked') }) +
+    '\n\n' + lines.join('\n')
+}
+
 /** @param {import('claude-code').EngineInterface} $ @param {Runtime} runtime @param {Config} config @param {boolean} remove */
 async function instructionFile($, runtime, config, remove) {
   try {
-    const homeDirectory = (await $.env.get('HOME')) || (await $.env.get('USERPROFILE'))
-    if (!homeDirectory || !/^(\/|[a-z]:[\\/])/i.test(homeDirectory)) return { text: t(config, 'noHome') }
-    const path = homeDirectory.replace(/[\\/]$/, '') + '/.claude/CLAUDE.md'
+    const path = (await instructionPaths($, runtime))[config.target]
+    if (!path) return { text: t(config, config.target === 'project' ? 'noProject' : 'noHome') }
     const previous = await $.fs.exists(path) ? await $.fs.read(path) : ''
     const range = blockRange(previous)
     if (range === false) return { text: t(config, 'malformed') }
@@ -213,7 +308,7 @@ async function instructionFile($, runtime, config, remove) {
         : base + (base && !base.endsWith('\n') ? newline : '') + block + newline
     }
     if (updated === previous || (!remove && !range && !hasCheckpoints && previous.includes(rule))) return { text: t(config, 'exists') }
-    const plan = checkpoints.map((c) => t(config, 'checkpointItem', { n: c.n, heading: c.heading || t(config, 'noHeading') })).join('\n')
+    const plan = checkpoints.map((c) => checkpointItem(config, c)).join('\n')
     let answer
     try {
       answer = await $.ui.ask(t(config, remove ? 'removeQuestion' : 'setupQuestion', { path, rule }) +
@@ -227,8 +322,7 @@ async function instructionFile($, runtime, config, remove) {
     const current = await $.fs.exists(path) ? await $.fs.read(path) : ''
     if (current !== previous) return { text: t(config, 'changed') }
     await $.fs.write(path, updated)
-    runtime.checkpoints = checkpoints
-    try { await $.store.set('checkpoints', checkpoints) } catch {}
+    await loadCheckpoints($, runtime)
     return { text: t(config, remove ? 'removed' : 'installed', { path }) }
   } catch (error) {
     return { text: t(config, 'fsError', { reason: excerpt(String(error)) }) }
@@ -239,11 +333,12 @@ async function instructionFile($, runtime, config, remove) {
 export function register(on, options = {}) {
   const config = configuration(options)
   /** @type {Runtime} */
-  const runtime = { checkpoints: [], interactive: false, activeTurn: null, timer: null, recoveryTimer: null,
+  const runtime = { checkpoints: [], cwd: '', interactive: false, activeTurn: null, timer: null, recoveryTimer: null,
     epoch: 0, inFlight: false, beat: 0, pose: 'idle' }
 
   on('session.start', async ($, e, next) => {
     runtime.interactive = e.isInteractive
+    runtime.cwd = e.cwd
     cancelRecovery(runtime)
     if (runtime.interactive) {
       const state = await read($, canary)
@@ -252,10 +347,7 @@ export function register(on, options = {}) {
         await update($, canary, /** @returns {Canary} */ (s) => ({ ...fresh(), ...s,
           recovery: s.recovery === 'pending' || s.recovery === 'compacting' ? 'interrupted' : s.recovery ?? 'idle' }))
       }
-      try {
-        const saved = await $.store.get('checkpoints')
-        runtime.checkpoints = Array.isArray(saved) ? saved : []
-      } catch { runtime.checkpoints = [] }
+      await loadCheckpoints($, runtime)
       for (const name of ['canary', 'canario']) {
         await $.command.register({ name, description: t(config, 'command'), argumentHint: t(config, 'argumentHint') })
       }
@@ -278,6 +370,7 @@ export function register(on, options = {}) {
       cancelRecovery(runtime)
       runtime.activeTurn = null
       if (e.source === 'clear') await update($, canary, fresh)
+      await loadCheckpoints($, runtime)
       startClock($, runtime, (await read($, canary)).alive)
     }
     return next(e)
@@ -324,6 +417,12 @@ export function register(on, options = {}) {
     if (!died) return result
     startClock($, runtime, false)
     const state = await read($, canary)
+    if (state.death) {
+      const { response, at: when, preview, turnId, lost: missing } = state.death
+      const project = basename(await projectRoot($, runtime))
+      await writeLog($, (log) => [...log, { at: when, project, response, preview, turnId,
+        ...(missing ? { lost: missing } : {}), outcome: state.recovery }])
+    }
     const message = (state.death?.lost?.length ? t(config, 'deathLost', { list: lostList(config, state.death.lost) }) : t(config, 'death')) +
       '\n' + note(config, state)
     $.ui.toast(message, { timeoutMs: 8000 })
@@ -339,6 +438,7 @@ export function register(on, options = {}) {
     if (['remove', 'uninstall', 'quitar'].includes(action)) return instructionFile($, runtime, config, true)
     const before = await read($, canary)
     if (['status', 'estado'].includes(action)) return { text: status(config, before) }
+    if (['log', 'history', 'historial'].includes(action)) return { text: await deathLog($, config) }
     if (!['', 'revive', 'revivir', 'reset'].includes(action)) return { text: t(config, 'help') }
     if (runtime.inFlight) return { text: status(config, before) }
     cancelRecovery(runtime)
@@ -346,6 +446,7 @@ export function register(on, options = {}) {
     await update($, canary, /** @returns {Canary} */ (s) => ({ ...fresh(), lastTurnId: s.lastTurnId,
       lastAutoCompactAt: s.lastAutoCompactAt, blocked: s.blocked, recovery: s.blocked ? 'blocked' : 'idle' }))
     startClock($, runtime, true)
+    if (!before.alive) await logOutcome($, 'revived')
     return { text: (action ? '' : status(config, before) + '\n') + t(config, before.alive ? 'stillAlive' : 'revived') }
   })
 

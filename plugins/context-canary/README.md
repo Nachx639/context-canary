@@ -1,14 +1,16 @@
-# Context Canary 1.2.0
+# Context Canary 1.3.0
 
 A pixel-art context canary for Claude Code **2.1.293**. MIT licensed.
 
 Use `/config` to choose `word` (default `🐤`), `language` (`en` default, or `es`),
 `autoCompact` (default on), `cooldownMinutes` (default 30), `size` (`tiny`, `small` default,
-`normal`, `large`) and `info` (`none` default: only the bird; `status`; `details`).
+`normal`, `large`), `info` (`none` default: only the bird; `status`; `details`), `checkpoints`
+(0–5) and `target` (`global` default, or `project` for the project's `CLAUDE.md`).
 
 - `/canary setup`: asks before adding/updating the marked canary rule in your
   `~/.claude/CLAUDE.md`. Restart the session to read newly added instructions.
 - `/canary`: status, then revival. `/canary status`: read-only status.
+- `/canary log`: the last deaths across sessions, with project, outcome and missing checkpoints.
 - `/canary revive`: reset health/counters; keep recovery loop protection.
 - `/canary remove`: asks before removing only the managed rule.
 - `/canario` is an alias, with `estado`, `revivir`, `configurar`, `quitar` aliases.
