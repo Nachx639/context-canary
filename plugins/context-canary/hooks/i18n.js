@@ -41,7 +41,7 @@ export const translations = {
     logLine: '{ago} · {project} · reply {response} · {outcome}',
     logLost: 'missing {list}',
     outcomeRecovered: 'revived after compaction', outcomeRevived: 'revived by hand',
-    outcomeBlocked: 'locked: second death in the window', outcomeDead: 'stayed dead', outcomePending: 'compaction pending',
+    outcomeBlocked: 'locked: second death in the window', outcomeDead: 'stayed dead', outcomePending: 'compaction pending', outcomeGone: 'session closed or resumed before recovery',
     agoMinutes: '{n} min ago', agoHours: '{n} h ago', agoDays: '{n} days ago',
   },
   es: {
@@ -85,7 +85,7 @@ export const translations = {
     logLine: 'hace {ago} · {project} · respuesta {response} · {outcome}',
     logLost: 'faltaba {list}',
     outcomeRecovered: 'revivió al compactar', outcomeRevived: 'revivido a mano',
-    outcomeBlocked: 'bloqueada: segunda muerte en la ventana', outcomeDead: 'siguió muerto', outcomePending: 'compactación pendiente',
+    outcomeBlocked: 'bloqueada: segunda muerte en la ventana', outcomeDead: 'siguió muerto', outcomePending: 'compactación pendiente', outcomeGone: 'sesión cerrada o reanudada antes de revivir',
     agoMinutes: '{n} min', agoHours: '{n} h', agoDays: '{n} días',
   },
 }

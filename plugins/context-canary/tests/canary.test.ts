@@ -737,3 +737,14 @@ check('the death annotation is a single line', async ($, on) => {
   const r = await $.turn.complete(done('no bird'))
   expect(r.text).not.toContain('\n')
 }, { autoCompact: false })
+
+check('a recovery still pending after an hour reads as a closed session', async ($, on) => {
+  const env = setup(on)
+  let log: unknown = [{ at: 0, project: 'p', response: 1, preview: 'x', turnId: 't', outcome: 'pending' }]
+  on('store.get', () => ({ value: log }))
+  on('store.set', ($, e) => { log = e.value; return { value: undefined } })
+  await $.session.start(START)
+  expect((await $.command.run(cmd('log'))).text).toContain('compaction pending')
+  await env.clock.advance(3_600_001)
+  expect((await $.command.run(cmd('log'))).text).toContain('session closed or resumed before recovery')
+})

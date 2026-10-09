@@ -254,6 +254,14 @@ async function writeLog($, change) {
 const logOutcome = ($, death, outcome) => death ? writeLog($, (log) =>
   log.map((d) => (d.turnId === death.turnId && d.at === death.at ? { ...d, outcome } : d))) : Promise.resolve()
 
+// A recovery still pending after an hour belongs to a session that was closed, resumed or cleared first:
+// the host resets the canary there, so nothing will ever settle that entry.
+/** @param {Death} d @param {number} now */
+function outcomeKey(d, now) {
+  const key = OUTCOMES[/** @type {keyof typeof OUTCOMES} */ (d.outcome)] ?? 'outcomeDead'
+  return key === 'outcomePending' && now - d.at > 3_600_000 ? 'outcomeGone' : key
+}
+
 /** @param {Config} config @param {number} ms */
 function ago(config, ms) {
   const minutes = Math.max(0, Math.floor(ms / 60_000))
@@ -269,7 +277,7 @@ async function deathLog($, config) {
   const now = await $.clock.now()
   const count = (/** @type {string} */ outcome) => log.filter((d) => d.outcome === outcome).length
   const lines = log.slice(-10).reverse().map((d) => t(config, 'logLine', { ago: ago(config, now - d.at), project: d.project,
-    response: d.response, outcome: t(config, OUTCOMES[/** @type {keyof typeof OUTCOMES} */ (d.outcome)] ?? 'outcomeDead') }) +
+    response: d.response, outcome: t(config, outcomeKey(d, now)) }) +
     (d.lost?.length ? '\n  ' + t(config, 'logLost', { list: lostList(config, d.lost) }) : '') +
     '\n  ' + t(config, 'preview', { preview: d.preview }))
   return t(config, 'logSummary', { total: log.length, recovered: count('recovered'), revived: count('revived'), blocked: count('blocked') }) +

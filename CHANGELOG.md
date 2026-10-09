@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.2 — 2026-10-09
+
+- `/canary log`: a recovery still pending after an hour reads "session closed or resumed before recovery". The
+  host resets the canary when a session is resumed or cleared, so that entry would otherwise say pending forever.
+
 ## 1.3.1 — 2026-10-09
 
 Found by a real session with `target: project` and two deaths:
