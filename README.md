@@ -149,8 +149,9 @@ no retries. A real main-session `classic.PostCompact` can also revive a dead
 bird after manual/host compaction; the plugin's own result controls its automatic
 attempt, so the two paths cannot revive twice.
 
-A second death within the configured window leaves **“this session cannot
-recover: start a new one”**. This lock lasts until `/clear` or a new session.
+A second death within the configured window leaves **“no second automatic
+compaction here; the session keeps working”**. Only automatic compaction pauses: the
+conversation and its agents are untouched. This lock lasts until `/clear` or a new session.
 Manual revival is available but does not remove the lock or cooldown. If
 compaction is in flight, revival reports its status and waits for the result.
 `/clear`, session shutdown and manual revival cancel queued work; an old result
@@ -224,7 +225,7 @@ precedence over a newer or older website.
 .claude-plugin/plugin.json          Root development test entry
 hooks/hooks.json                    Loads the shipped module for root tests
 plugins/context-canary/
-  .claude-plugin/plugin.json        Plugin manifest, 1.3.3 and userConfig
+  .claude-plugin/plugin.json        Plugin manifest, 1.3.4 and userConfig
   hooks/{hooks.json,register.js,i18n.js,pixels.js,checkpoints.js}
   hooks/sprites.js                 Generated from design/sprites.json
 

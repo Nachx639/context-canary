@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.4 — 2026-10-09
+
+- The lock notice after a second death no longer says the session cannot recover. Only automatic compaction
+  pauses; the conversation and its agents keep working, and it points to `/canary revive` or `/compact`.
+
 ## 1.3.3 — 2026-10-09
 
 - Automatic compaction waits for background subagents still running (up to an hour), since they report back into
