@@ -139,7 +139,8 @@ On death, the mod retains the first failing reply's number, timestamp and short
 excerpt, shows a toast and queues a timer. After the turn returns, it calls
 `$.session.compact` with instructions to preserve all user instructions,
 constraints, preferences, decisions and unfinished work, including the sentinel
-rule. A newly started turn postpones the call. Compaction may use a model request
+rule. A newly started turn postpones the call, and so do background subagents still
+running (up to an hour), since they report back into the same conversation. Compaction may use a model request
 and incur normal Claude Code usage.
 
 Successful automatic compaction revives the bird with **“revived after
@@ -223,7 +224,7 @@ precedence over a newer or older website.
 .claude-plugin/plugin.json          Root development test entry
 hooks/hooks.json                    Loads the shipped module for root tests
 plugins/context-canary/
-  .claude-plugin/plugin.json        Plugin manifest, 1.3.2 and userConfig
+  .claude-plugin/plugin.json        Plugin manifest, 1.3.3 and userConfig
   hooks/{hooks.json,register.js,i18n.js,pixels.js,checkpoints.js}
   hooks/sprites.js                 Generated from design/sprites.json
 

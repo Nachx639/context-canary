@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.3 — 2026-10-09
+
+- Automatic compaction waits for background subagents still running (up to an hour), since they report back into
+  the same conversation; the death notice says so.
+- The second sentence of the death notice starts with a capital letter.
+
 ## 1.3.2 — 2026-10-09
 
 - `/canary log`: a recovery still pending after an hour reads "session closed or resumed before recovery". The

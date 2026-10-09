@@ -124,7 +124,9 @@ entre herramientas, salidas de comandos locales y ejecuciones `claude -p`.
 
 Al morir guarda la primera respuesta culpable, su número, fecha y un extracto.
 Emite un toast y programa un temporizador fuera de `turn.complete`: compactar
-dentro del turno sería rechazado. Un turno nuevo aplaza la operación. Las
+dentro del turno sería rechazado. Un turno nuevo aplaza la operación, y también
+los subagentes en segundo plano que sigan trabajando (hasta una hora), porque
+informan a la misma conversación. Las
 instrucciones de compactación piden conservar todas las instrucciones,
 restricciones, preferencias, decisiones y tareas pendientes del usuario,
 incluida la regla del canario. La compactación puede consumir una petición al
@@ -209,7 +211,7 @@ Para esta implementación mandan los tipos locales de **2.1.293**.
 .claude-plugin/plugin.json          Entrada de desarrollo para tests en raíz
 hooks/hooks.json                    Carga el módulo del plugin
 plugins/context-canary/
-  .claude-plugin/plugin.json        Versión 1.3.2 y userConfig
+  .claude-plugin/plugin.json        Versión 1.3.3 y userConfig
   hooks/{hooks.json,register.js,i18n.js,pixels.js,checkpoints.js}
   hooks/sprites.js                 Generado desde design/sprites.json
   types/index.d.ts                 Contrato del estado

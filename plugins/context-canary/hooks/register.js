@@ -8,7 +8,7 @@ import { CHECKPOINT, missingCheckpoints, pickCodes, placeCheckpoints, readCheckp
 /** @typedef {{ word: string, autoCompact: boolean, cooldownMinutes: number, language: 'en'|'es', size: 'tiny'|'small'|'normal'|'large', info: 'none'|'status'|'details', checkpoints: number, target: 'global'|'project' }} Config */
 /** @typedef {import('./checkpoints.js').Checkpoint} Checkpoint */
 /** @typedef {{ at: number, project: string, response: number, preview: string, turnId: string, lost?: { n: number, heading: string }[], outcome: string }} Death */
-/** @typedef {{ checkpoints: Checkpoint[], cwd: string, interactive: boolean, activeTurn: string|null, timer: import('claude-code').Timer|null, recoveryTimer: import('claude-code').Timer|null, epoch: number, inFlight: boolean, beat: number, pose: string }} Runtime */
+/** @typedef {{ checkpoints: Checkpoint[], agents: Set<string>, cwd: string, interactive: boolean, activeTurn: string|null, timer: import('claude-code').Timer|null, recoveryTimer: import('claude-code').Timer|null, epoch: number, inFlight: boolean, beat: number, pose: string }} Runtime */
 
 /** @returns {Canary} */
 const fresh = () => ({ alive: true, responses: 0, streak: 0, lastTurnId: null, death: null,
@@ -17,6 +17,8 @@ const canary = atom({ plugin: 'context-canary', key: 'canary' }, fresh())
 const BEGIN = '<!-- context-canary:start -->'
 const END = '<!-- context-canary:end -->'
 const LOG_SIZE = 30
+/** Compact anyway after this long, in case a subagent's stop never arrives. */
+const AGENT_WAIT_MS = 60 * 60_000
 /** How each death ended, for /canary log; anything else (skipped, failed, notify only) reads as dead. */
 const OUTCOMES = /** @type {const} */ ({ recovered: 'outcomeRecovered', revived: 'outcomeRevived', blocked: 'outcomeBlocked',
   pending: 'outcomePending', compacting: 'outcomePending' })
@@ -71,6 +73,9 @@ export function excerpt(answer) {
 
 /** @param {Config} config @param {keyof typeof import('./i18n.js').translations.en} key @param {Record<string, string|number>} [values] */
 const t = (config, key, values = {}) => translate(config.language, key, { word: JSON.stringify(config.word), ...values })
+
+/** @param {string} text */
+const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1)
 
 /** @param {Config} config @param {Canary} state */
 function note(config, state) {
@@ -146,16 +151,22 @@ async function recovered($, runtime, config, automatic) {
 
 // Never await compaction in turn.complete: that dispatch is still part of the
 // running turn. A timer yields to the host; a newly started turn postpones it.
-/** @param {import('claude-code').EngineInterface} $ @param {Runtime} runtime @param {Config} config */
-function scheduleRecovery($, runtime, config) {
+// Background subagents keep working after the turn ends and report back into this conversation, so the
+// recovery waits for them too (seen 2026-10-09: a death while three background agents were still running).
+/** @param {import('claude-code').EngineInterface} $ @param {Runtime} runtime @param {Config} config @param {number} [delay] */
+function scheduleRecovery($, runtime, config, delay = 100) {
   const epoch = runtime.epoch
-  runtime.recoveryTimer = $.clock.after(100, async () => {
+  runtime.recoveryTimer = $.clock.after(delay, async () => {
     runtime.recoveryTimer = null
     if (!runtime.interactive || runtime.epoch !== epoch) return
     const state = await read($, canary)
     if (state.alive || state.blocked || state.recovery !== 'pending') return
     if (runtime.activeTurn !== null || runtime.inFlight) {
       scheduleRecovery($, runtime, config)
+      return
+    }
+    if (runtime.agents.size && (await $.clock.now()) - (state.death?.at ?? 0) < AGENT_WAIT_MS) {
+      scheduleRecovery($, runtime, config, 5000)
       return
     }
     runtime.inFlight = true
@@ -344,7 +355,7 @@ async function instructionFile($, runtime, config, remove) {
 export function register(on, options = {}) {
   const config = configuration(options)
   /** @type {Runtime} */
-  const runtime = { checkpoints: [], cwd: '', interactive: false, activeTurn: null, timer: null, recoveryTimer: null,
+  const runtime = { checkpoints: [], agents: new Set(), cwd: '', interactive: false, activeTurn: null, timer: null, recoveryTimer: null,
     epoch: 0, inFlight: false, beat: 0, pose: 'idle' }
 
   on('session.start', async ($, e, next) => {
@@ -371,6 +382,7 @@ export function register(on, options = {}) {
     cancelRecovery(runtime)
     stopClock(runtime)
     runtime.activeTurn = null
+    runtime.agents.clear()
     // /clear and /resume emit SessionStart, not another session.start.
     if (e.reason !== 'clear' && e.reason !== 'resume') runtime.interactive = false
     return next(e)
@@ -384,6 +396,16 @@ export function register(on, options = {}) {
       await loadCheckpoints($, runtime)
       startClock($, runtime, (await read($, canary)).alive)
     }
+    return next(e)
+  })
+
+  on('classic.SubagentStart', ($, e, next) => {
+    if (runtime.interactive) runtime.agents.add(e.agent_id)
+    return next(e)
+  })
+
+  on('classic.SubagentStop', ($, e, next) => {
+    runtime.agents.delete(e.agent_id)
     return next(e)
   })
 
@@ -436,7 +458,7 @@ export function register(on, options = {}) {
     }
     // One line: the host draws a newline inside a turn annotation as U+FFFD (seen in 2.1.295, 2026-10-09).
     const message = (state.death?.lost?.length ? t(config, 'deathLost', { list: lostList(config, state.death.lost) }) : t(config, 'death')) +
-      ' ' + note(config, state)
+      ' ' + capitalize(note(config, state))
     $.ui.toast(message, { timeoutMs: 8000 })
     if (state.recovery === 'pending') scheduleRecovery($, runtime, config)
     const annotation = result.text && result.text !== e.answer ? result.text + ' ' : ''
