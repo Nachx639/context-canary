@@ -342,7 +342,7 @@ check('keeps other mods annotations, usage and duplicate protection', async ($, 
   expect(env.state().responses).toBe(1)
   const usage = { model: 'test', input_tokens: 1, output_tokens: 2, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 }
   const result = await $.turn.complete(done('missing', { usage }))
-  expect(result.text).toMatch(/^Other annotation\nThe canary died/)
+  expect(result.text).toMatch(/^Other annotation The canary died/)
   expect(result.usage).toEqual(usage)
 })
 
@@ -696,12 +696,12 @@ check('/canary log records each death, its project and how it ended', async ($, 
   expect(env.state().alive).toBe(true)
   await env.clock.advance(2 * 3_600_000)
   const text = (await $.command.run(cmd('log'))).text!
-  expect(text).toMatch(/^1 deaths · 1 revived by compaction · 0 revived by hand · 0 sessions locked/)
+  expect(text).toMatch(/^Deaths: 1 · revived by compaction: 1 · revived by hand: 0 · sessions locked: 0/)
   expect(text).toContain('2 h ago · my-app · reply 1 · revived after compaction')
   expect(text).toContain('Starts: forgot the bird')
-  // The newest death comes first; until compaction ends it reads as dead.
+  // The newest death comes first; until compaction ends it reads as pending.
   await $.turn.complete(done('forgot again'))
-  expect((await $.command.run(cmd('log'))).text).toMatch(/2 deaths[\s\S]*reply 2 · stayed dead/)
+  expect((await $.command.run(cmd('log'))).text).toMatch(/Deaths: 2[\s\S]*reply 2 · compaction pending/)
 }, { cooldownMinutes: 0 })
 
 check('a manual revive is logged as revived by hand', async ($, on) => {
@@ -714,4 +714,26 @@ check('a manual revive is logged as revived by hand', async ($, on) => {
   await $.command.run(cmd('revive'))
   expect((log as { outcome: string }[]).at(-1)!.outcome).toBe('revived')
   expect(env.state().alive).toBe(true)
+}, { autoCompact: false })
+
+check('an outcome goes to this session\'s death, not to a newer one from another session', async ($, on) => {
+  setup(on)
+  const other = { at: 5, project: 'other', response: 1, preview: 'x', turnId: 'other-turn', outcome: 'pending' }
+  let log: unknown = [other]
+  on('store.get', () => ({ value: log }))
+  on('store.set', ($, e) => { log = e.value; return { value: undefined } })
+  await $.session.start(START)
+  await $.turn.complete(done('no bird'))
+  // Another session dies meanwhile; its entry is now the newest.
+  log = [...(log as object[]), { ...other, turnId: 'third', at: 9 }]
+  await $.command.run(cmd('revive'))
+  const entries = log as { turnId: string, outcome: string }[]
+  expect(entries.map((d) => d.outcome)).toEqual(['pending', 'revived', 'pending'])
+}, { autoCompact: false })
+
+check('the death annotation is a single line', async ($, on) => {
+  setup(on)
+  await $.session.start(START)
+  const r = await $.turn.complete(done('no bird'))
+  expect(r.text).not.toContain('\n')
 }, { autoCompact: false })

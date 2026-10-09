@@ -209,7 +209,7 @@ Para esta implementación mandan los tipos locales de **2.1.293**.
 .claude-plugin/plugin.json          Entrada de desarrollo para tests en raíz
 hooks/hooks.json                    Carga el módulo del plugin
 plugins/context-canary/
-  .claude-plugin/plugin.json        Versión 1.3.0 y userConfig
+  .claude-plugin/plugin.json        Versión 1.3.1 y userConfig
   hooks/{hooks.json,register.js,i18n.js,pixels.js,checkpoints.js}
   hooks/sprites.js                 Generado desde design/sprites.json
   types/index.d.ts                 Contrato del estado

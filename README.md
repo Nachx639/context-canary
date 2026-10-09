@@ -223,7 +223,7 @@ precedence over a newer or older website.
 .claude-plugin/plugin.json          Root development test entry
 hooks/hooks.json                    Loads the shipped module for root tests
 plugins/context-canary/
-  .claude-plugin/plugin.json        Plugin manifest, 1.3.0 and userConfig
+  .claude-plugin/plugin.json        Plugin manifest, 1.3.1 and userConfig
   hooks/{hooks.json,register.js,i18n.js,pixels.js,checkpoints.js}
   hooks/sprites.js                 Generated from design/sprites.json
 

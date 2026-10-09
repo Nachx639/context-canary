@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.1 — 2026-10-09
+
+Found by a real session with `target: project` and two deaths:
+
+- `/canary log` wrote an outcome to the newest entry, even when it belonged to another session; it now goes to
+  this session's own death.
+- The death notice is one line: Claude Code 2.1.295 drew the newline inside a turn annotation as `�`.
+- A death still waiting for compaction reads "compaction pending", and the summary no longer says "1 deaths".
+
 ## 1.3.0 — 2026-10-09
 
 - `target` (`global` or `project`): `/canary setup` and `/canary remove` can edit the project's `CLAUDE.md`.

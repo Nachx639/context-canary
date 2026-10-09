@@ -17,8 +17,9 @@ const canary = atom({ plugin: 'context-canary', key: 'canary' }, fresh())
 const BEGIN = '<!-- context-canary:start -->'
 const END = '<!-- context-canary:end -->'
 const LOG_SIZE = 30
-/** How each death ended, for /canary log; anything else (still dead, skipped, failed) reads as dead. */
-const OUTCOMES = /** @type {const} */ ({ recovered: 'outcomeRecovered', revived: 'outcomeRevived', blocked: 'outcomeBlocked' })
+/** How each death ended, for /canary log; anything else (skipped, failed, notify only) reads as dead. */
+const OUTCOMES = /** @type {const} */ ({ recovered: 'outcomeRecovered', revived: 'outcomeRevived', blocked: 'outcomeBlocked',
+  pending: 'outcomePending', compacting: 'outcomePending' })
 
 /** @param {import('claude-code').PluginOptions} options @returns {Config} */
 export function configuration(options = {}) {
@@ -128,15 +129,18 @@ function startClock($, runtime, alive) {
 async function recovered($, runtime, config, automatic) {
   const at = await $.clock.now()
   let changed = false
+  /** @type {Canary['death']} */
+  let death = null
   await update($, canary, /** @returns {Canary} */ (state) => {
     changed = !state.alive && !state.blocked
+    death = state.death
     return changed ? { ...state, alive: true, streak: 0, death: null, recovery: 'recovered', detail: '',
       lastAutoCompactAt: automatic ? at : state.lastAutoCompactAt } : state
   })
   if (!changed) return
   cancelRecovery(runtime)
   startClock($, runtime, true)
-  await logOutcome($, 'recovered')
+  await logOutcome($, death, 'recovered')
   $.ui.toast(t(config, 'recovered'), { timeoutMs: 8000 })
 }
 
@@ -162,7 +166,7 @@ function scheduleRecovery($, runtime, config) {
       if (result.skip !== undefined) {
         const detail = excerpt(result.skip)
         await update($, canary, /** @returns {Canary} */ (s) => ({ ...s, recovery: 'skipped', detail }))
-        await logOutcome($, 'skipped')
+        await logOutcome($, (await read($, canary)).death, 'skipped')
         $.ui.toast(t(config, 'skipped', { reason: detail }), { timeoutMs: 8000 })
       } else {
         await recovered($, runtime, config, true)
@@ -171,7 +175,7 @@ function scheduleRecovery($, runtime, config) {
       if (runtime.epoch !== epoch || !runtime.interactive) return
       const detail = excerpt(String(error))
       await update($, canary, /** @returns {Canary} */ (s) => ({ ...s, recovery: 'failed', detail }))
-      await logOutcome($, 'failed')
+      await logOutcome($, (await read($, canary)).death, 'failed')
       $.ui.toast(t(config, 'failed', { reason: detail }), { timeoutMs: 8000 })
     } finally {
       runtime.inFlight = false
@@ -245,11 +249,10 @@ async function writeLog($, change) {
   try { await $.store.set('deaths', change(await readLog($)).slice(-LOG_SIZE)) } catch {}
 }
 
-/** Record how the latest death ended. @param {import('claude-code').EngineInterface} $ @param {string} outcome */
-const logOutcome = ($, outcome) => writeLog($, (log) => {
-  const last = log[log.length - 1]
-  return last ? [...log.slice(0, -1), { ...last, outcome }] : log
-})
+// The log is shared by every session, so an outcome goes to this session's death, never just the newest entry.
+/** @param {import('claude-code').EngineInterface} $ @param {Canary['death']} death @param {string} outcome */
+const logOutcome = ($, death, outcome) => death ? writeLog($, (log) =>
+  log.map((d) => (d.turnId === death.turnId && d.at === death.at ? { ...d, outcome } : d))) : Promise.resolve()
 
 /** @param {Config} config @param {number} ms */
 function ago(config, ms) {
@@ -423,11 +426,12 @@ export function register(on, options = {}) {
       await writeLog($, (log) => [...log, { at: when, project, response, preview, turnId,
         ...(missing ? { lost: missing } : {}), outcome: state.recovery }])
     }
+    // One line: the host draws a newline inside a turn annotation as U+FFFD (seen in 2.1.295, 2026-10-09).
     const message = (state.death?.lost?.length ? t(config, 'deathLost', { list: lostList(config, state.death.lost) }) : t(config, 'death')) +
-      '\n' + note(config, state)
+      ' ' + note(config, state)
     $.ui.toast(message, { timeoutMs: 8000 })
     if (state.recovery === 'pending') scheduleRecovery($, runtime, config)
-    const annotation = result.text && result.text !== e.answer ? result.text + '\n' : ''
+    const annotation = result.text && result.text !== e.answer ? result.text + ' ' : ''
     return { ...result, text: annotation + message }
   })
 
@@ -446,7 +450,7 @@ export function register(on, options = {}) {
     await update($, canary, /** @returns {Canary} */ (s) => ({ ...fresh(), lastTurnId: s.lastTurnId,
       lastAutoCompactAt: s.lastAutoCompactAt, blocked: s.blocked, recovery: s.blocked ? 'blocked' : 'idle' }))
     startClock($, runtime, true)
-    if (!before.alive) await logOutcome($, 'revived')
+    if (!before.alive) await logOutcome($, before.death, 'revived')
     return { text: (action ? '' : status(config, before) + '\n') + t(config, before.alive ? 'stillAlive' : 'revived') }
   })
 
