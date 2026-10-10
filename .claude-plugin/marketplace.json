@@ -6,13 +6,13 @@
   },
   "metadata": {
     "description": "A configurable context canary for Claude Code.",
-    "version": "1.3.4"
+    "version": "1.3.5"
   },
   "plugins": [
     {
       "name": "context-canary",
       "source": "./plugins/context-canary",
-      "version": "1.3.4",
+      "version": "1.3.5",
       "description": "Animated context canary with automatic compaction and loop protection."
     }
   ]

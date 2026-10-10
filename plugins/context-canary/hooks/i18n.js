@@ -15,6 +15,7 @@ export const translations = {
     failed: 'Compaction failed: {reason}. The canary remains dead.',
     interrupted: 'Recovery was interrupted. The canary remains dead; use /compact or /canary revive.',
     notifyOnly: 'Automatic compaction is off. The canary remains dead.',
+    selfRevived: 'The canary revived: the answer followed the rule again.',
     revived: 'Canary revived; streak reset.', stillAlive: 'The canary is still alive; streak reset.',
     status: '{health} · word: {word} · streak: {streak} · checked: {responses}',
     streak: 'Streak: {streak} · {word}',
@@ -41,7 +42,7 @@ export const translations = {
     logLine: '{ago} · {project} · reply {response} · {outcome}',
     logLost: 'missing {list}',
     outcomeRecovered: 'revived after compaction', outcomeRevived: 'revived by hand',
-    outcomeBlocked: 'locked: second death in the window', outcomeDead: 'stayed dead', outcomePending: 'compaction pending', outcomeGone: 'session closed or resumed before recovery',
+    outcomeBlocked: 'locked: second death in the window', outcomeSelfRevived: 'revived: the next answer followed the rule', outcomeDead: 'stayed dead', outcomePending: 'compaction pending', outcomeGone: 'session closed or resumed before recovery',
     agoMinutes: '{n} min ago', agoHours: '{n} h ago', agoDays: '{n} days ago',
   },
   es: {
@@ -59,6 +60,7 @@ export const translations = {
     failed: 'La compactación falló: {reason}. El canario sigue muerto.',
     interrupted: 'La recuperación se interrumpió. El canario sigue muerto; usa /compact o /canary revive.',
     notifyOnly: 'La compactación automática está desactivada. El canario sigue muerto.',
+    selfRevived: 'El canario revive: la respuesta vuelve a cumplir la regla.',
     revived: 'Canario revivido; racha a cero.', stillAlive: 'El canario sigue vivo; racha a cero.',
     status: '{health} · palabra: {word} · racha: {streak} · comprobadas: {responses}',
     streak: 'Racha: {streak} · {word}',
@@ -85,7 +87,7 @@ export const translations = {
     logLine: 'hace {ago} · {project} · respuesta {response} · {outcome}',
     logLost: 'faltaba {list}',
     outcomeRecovered: 'revivió al compactar', outcomeRevived: 'revivido a mano',
-    outcomeBlocked: 'bloqueada: segunda muerte en la ventana', outcomeDead: 'siguió muerto', outcomePending: 'compactación pendiente', outcomeGone: 'sesión cerrada o reanudada antes de revivir',
+    outcomeBlocked: 'bloqueada: segunda muerte en la ventana', outcomeSelfRevived: 'revivió: la siguiente respuesta cumplió la regla', outcomeDead: 'siguió muerto', outcomePending: 'compactación pendiente', outcomeGone: 'sesión cerrada o reanudada antes de revivir',
     agoMinutes: '{n} min', agoHours: '{n} h', agoDays: '{n} días',
   },
 }

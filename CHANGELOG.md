@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.5 — 2026-10-10
+
+- A dead canary revives on its own when a later answer follows the rule again, including in a locked session (the
+  lock stays). A queued automatic compaction is cancelled in that case, since the rule is back without it.
+  `/canary log` records it as "revived: the next answer followed the rule".
+
 ## 1.3.4 — 2026-10-09
 
 - The lock notice after a second death no longer says the session cannot recover. Only automatic compaction

@@ -179,6 +179,37 @@ check('a second death within 30 min latches the lock; revival cannot bypass it',
   expect(env.state()).toEqual(clean())
 })
 
+check('a locked session that follows the rule again revives on its own and keeps the lock', async ($, on) => {
+  const env = setup(on)
+  let log: unknown = undefined
+  on('store.get', ($, e) => ({ value: e.key === 'deaths' ? log : undefined }))
+  on('store.set', ($, e) => { if (e.key === 'deaths') log = e.value; return { value: undefined } })
+  await $.session.start(START)
+  await $.turn.complete(done('first death'))
+  await env.clock.advance(100)
+  await $.turn.complete(done('second death'))
+  expect(env.state()).toMatchObject({ alive: false, blocked: true })
+  await $.turn.complete(done('🐤 back on track'))
+  expect(env.state()).toMatchObject({ alive: true, blocked: true, recovery: 'blocked', streak: 1, responses: 3 })
+  expect(env.toasts.at(-1)).toBe('The canary revived: the answer followed the rule again.')
+  expect((await $.command.run(cmd('log'))).text).toContain('revived: the next answer followed the rule')
+  await $.turn.complete(done('third death'))
+  await env.clock.advance(120_000)
+  expect(env.compacts.length).toBe(1)
+  expect(env.state()).toMatchObject({ alive: false, recovery: 'blocked' })
+})
+
+check('a valid answer before the queued compaction cancels it', async ($, on) => {
+  const env = setup(on)
+  await $.session.start(START)
+  await $.turn.complete(done('missing'))
+  await $.turn.start({ turnId: 'next', text: 'go on' })
+  await $.turn.complete(done('🐤 fine again', { turnId: 'next' }))
+  await env.clock.advance(120_000)
+  expect(env.compacts).toEqual([])
+  expect(env.state()).toMatchObject({ alive: true, recovery: 'idle', lastAutoCompactAt: null })
+})
+
 for (const minutes of [0, 1, 30]) check('cooldown boundary permits another compact at ' + minutes + ' min', async ($, on) => {
   const env = setup(on)
   await $.session.start(START)

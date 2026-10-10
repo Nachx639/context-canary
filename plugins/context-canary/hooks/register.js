@@ -20,7 +20,7 @@ const LOG_SIZE = 30
 /** Compact anyway after this long, in case a subagent's stop never arrives. */
 const AGENT_WAIT_MS = 60 * 60_000
 /** How each death ended, for /canary log; anything else (skipped, failed, notify only) reads as dead. */
-const OUTCOMES = /** @type {const} */ ({ recovered: 'outcomeRecovered', revived: 'outcomeRevived', blocked: 'outcomeBlocked',
+const OUTCOMES = /** @type {const} */ ({ recovered: 'outcomeRecovered', revived: 'outcomeRevived', selfRevived: 'outcomeSelfRevived', blocked: 'outcomeBlocked',
   pending: 'outcomePending', compacting: 'outcomePending' })
 
 /** @param {import('claude-code').PluginOptions} options @returns {Config} */
@@ -430,9 +430,26 @@ export function register(on, options = {}) {
     const answer = e.answer.trim()
     if (!answer) return result
     const current = await read($, canary)
-    if (!current.alive || current.lastTurnId === e.turnId) return result
+    if (current.lastTurnId === e.turnId) return result
     const lost = isAlive(answer, config.word) ? missingCheckpoints(answer, runtime.checkpoints) : []
     const valid = isAlive(answer, config.word) && lost.length === 0
+    // A dead bird whose session follows the rule again comes back on its own, and a queued compaction is no longer
+    // needed (seen 2026-10-10: a locked session answered "Nacho, ..." for hours under a dead bird).
+    if (!current.alive) {
+      if (!valid || runtime.inFlight || current.recovery === 'compacting') return result
+      cancelRecovery(runtime)
+      let changed = false
+      await update($, canary, /** @returns {Canary} */ (s) => {
+        changed = !s.alive && s.lastTurnId !== e.turnId && s.recovery !== 'compacting'
+        return changed ? { ...fresh(), responses: s.responses + 1, streak: 1, lastTurnId: e.turnId,
+          lastAutoCompactAt: s.lastAutoCompactAt, blocked: s.blocked, recovery: s.blocked ? 'blocked' : 'idle' } : s
+      })
+      if (!changed) return result
+      startClock($, runtime, true)
+      await logOutcome($, current.death, 'selfRevived')
+      $.ui.toast(t(config, 'selfRevived'), { timeoutMs: 8000 })
+      return result
+    }
     const at = valid ? 0 : await $.clock.now()
     let died = false
     await update($, canary, /** @returns {Canary} */ (state) => {

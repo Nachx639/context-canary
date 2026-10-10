@@ -140,7 +140,8 @@ automática para evitar una doble recuperación.
 
 Una segunda muerte dentro de la ventana deja **«no compacto otra vez en esta sesión;
 sigue funcionando, usa /canary revive o /compact»**. Solo se pausa la compactación
-automática: la conversación y los agentes siguen intactos. El bloqueo dura hasta `/clear` o una sesión nueva; revivir
+automática: la conversación y los agentes siguen intactos. Si una respuesta posterior vuelve a cumplir la regla, el pájaro revive solo (el bloqueo se mantiene) y
+se cancela la compactación pendiente. El bloqueo dura hasta `/clear` o una sesión nueva; revivir
 manualmente no lo elimina. Con una compactación en curso, revive devuelve su
 estado y espera al resultado. `/clear`, cerrar la sesión o revivir manualmente
 cancelan una recuperación pendiente, y un resultado antiguo no revive otro contexto.
@@ -212,7 +213,7 @@ Para esta implementación mandan los tipos locales de **2.1.293**.
 .claude-plugin/plugin.json          Entrada de desarrollo para tests en raíz
 hooks/hooks.json                    Carga el módulo del plugin
 plugins/context-canary/
-  .claude-plugin/plugin.json        Versión 1.3.4 y userConfig
+  .claude-plugin/plugin.json        Versión 1.3.5 y userConfig
   hooks/{hooks.json,register.js,i18n.js,pixels.js,checkpoints.js}
   hooks/sprites.js                 Generado desde design/sprites.json
   types/index.d.ts                 Contrato del estado
