@@ -2,7 +2,7 @@
   "name": "context-canary",
   "displayName": "Context Canary",
   "version": "1.3.5",
-  "description": "Development test entry for the Context Canary marketplace; installs use plugins/context-canary.",
+  "description": "A pixel-art canary above the prompt that dies when a reply forgets a rule from CLAUDE.md, compacts the session keeping your instructions, and revives.",
   "author": {
     "name": "Nachx639",
     "url": "https://github.com/Nachx639"
